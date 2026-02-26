@@ -1,4 +1,4 @@
-  // Firebase configuration - Replace with your own config
+// Firebase configuration - Replace with your own config
 const firebaseConfig = {
     apiKey: "AIzaSyCZCAwncuoDuy033ZrEquCwRvYpacBs8xM",
     authDomain: "heartquotecommunity.firebaseapp.com",
