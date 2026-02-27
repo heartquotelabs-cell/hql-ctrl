@@ -401,7 +401,8 @@ if (document.readyState === 'loading') {
 
 
 
-let interstitial;
+// Use a different variable name to avoid conflicts
+let admobInterstitial;
 let isAdReady = false; 
 
 const COOLDOWN_MS = 60000; // 1 minute
@@ -497,52 +498,64 @@ function updateButtonVisibility() {
 
     if (canShow) {
         btn.style.display = 'flex';
-        btn.disabled = false; // Re-enable when ready
+        btn.disabled = false;
     } else {
         btn.style.display = 'none';
-        btn.disabled = true; // Stay disabled when hidden
+        btn.disabled = true;
     }
 }
 
 document.addEventListener('deviceready', async () => {
-alert('device ready');
-    interstitial = new admob.InterstitialAd({
-        adUnitId: 'ca-app-pub-5188642994982403/1811807909', // Test ID
-    });
+alert('device readyyyy');
+    try {
+        // Check if admob is available
+        if (typeof admob === 'undefined') {
+            console.error("AdMob Plus plugin not installed");
+            return;
+        }
 
-    interstitial.on('load', () => {
-        isAdReady = true;
-        btn.classList.remove('is-loading');
-        updateButtonVisibility();
-    });
+        // Create interstitial with different variable name
+        admobInterstitial = new admob.InterstitialAd({
+            adUnitId: 'ca-app-pub-5188642994982403/1811807909',
+        });
 
-    interstitial.on('loadfail', () => {
-        isAdReady = false;
-        updateButtonVisibility();
-        setTimeout(() => interstitial.load(), 15000); // Retry
-    });
+        admobInterstitial.on('load', () => {
+            isAdReady = true;
+            btn.classList.remove('is-loading');
+            updateButtonVisibility();
+        });
 
-    // Start initial load
-    if (Date.now() - getPrevTime() >= COOLDOWN_MS) {
-        interstitial.load();
+        admobInterstitial.on('loadfail', () => {
+            isAdReady = false;
+            updateButtonVisibility();
+            setTimeout(() => {
+                if (admobInterstitial) admobInterstitial.load();
+            }, 15000);
+        });
+
+        // Start initial load
+        if (Date.now() - getPrevTime() >= COOLDOWN_MS) {
+            admobInterstitial.load();
+        }
+        
+        setInterval(updateButtonVisibility, 3000);
+    } catch (error) {
+        console.error("AdMob initialization error:", error);
     }
-    
-    setInterval(updateButtonVisibility, 3000);
 }, false);
 
 btn.addEventListener('click', async () => {
-    // Prevent double-clicking immediately
-    if (isAdReady && !btn.disabled) {
-        btn.disabled = true; // 1. LOCK BUTTON IMMEDIATELY
+    if (isAdReady && !btn.disabled && admobInterstitial) {
+        btn.disabled = true;
         
         try {
-            await interstitial.show();
+            await admobInterstitial.show();
             setPrevTime();
             isAdReady = false;
-            updateButtonVisibility(); // 2. HIDE BUTTON
+            updateButtonVisibility();
         } catch (e) {
             console.error("Show failed", e);
-            btn.disabled = false; // Unlock if the ad failed to show
+            btn.disabled = false;
         }
     }
 });
@@ -550,7 +563,7 @@ btn.addEventListener('click', async () => {
 document.addEventListener('admob.ad.dismiss', () => {
     isAdReady = false;
     updateButtonVisibility();
-    // Wait until the 1-minute mark is almost up to fetch the next ad
-    setTimeout(() => interstitial.load(), COOLDOWN_MS - 5000);
+    setTimeout(() => {
+        if (admobInterstitial) admobInterstitial.load();
+    }, COOLDOWN_MS - 5000);
 });
-
