@@ -400,6 +400,10 @@ if (document.readyState === 'loading') {
 
 
 
+
+
+
+
 /**
  * manager.js - Enterprise Waterfall v2.0
  * Features: Multi-provider failover, Exponential Backoff, UMP Consent
@@ -435,8 +439,8 @@ const backupProviders = [
 ];
 
 // --- UI & TOAST SYSTEM ---
-const style = document.createElement('style');
-style.innerHTML = `
+const styloo = document.createElement('style');
+styloo.innerHTML = `
     .ad-toast {
         position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
         background: rgba(0,0,0,0.9); color: white; padding: 12px 24px;
@@ -446,7 +450,7 @@ style.innerHTML = `
     .ad-toast-success { background: #4CAF50; }
     .ad-toast-error { background: #f44336; }
 `;
-document.head.appendChild(style);
+document.head.appendChild(styloo);
 
 const btn = document.createElement('button');
 btn.className = 'ad-fab-button';
