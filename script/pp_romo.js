@@ -395,3 +395,162 @@ if (document.readyState === 'loading') {
 }
 
 
+
+
+
+
+
+
+let interstitial;
+let isAdReady = false; 
+
+const COOLDOWN_MS = 60000; // 1 minute
+const getPrevTime = () => parseInt(localStorage.getItem('ad_last_shown')) || 0;
+const setPrevTime = () => localStorage.setItem('ad_last_shown', Date.now());
+
+// Add styles
+const style = document.createElement('style');
+style.innerHTML = `
+    /* AdMob Floating Button */
+    .ad-fab-button {
+        display: none; /* Hidden by default - JS will show it */
+        position: fixed !important;
+        top: 7px !important;
+        right: 15px !important;
+        width: 35px !important;
+        height: 35px !important;
+        background-color: transparent !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 50% !important;
+        z-index: 2147483647 !important;
+        cursor: pointer !important;
+        border: 1px solid #cccc !important;
+        
+        /* Center the icon */
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 24px !important;
+        transition: transform 0.2s, opacity 0.3s !important;
+    }
+
+    .ad-fab-button:active {
+        transform: scale(0.9);
+        background-color: rgba(0, 0, 0, 0.9) !important;
+    }
+
+    .ad-fab-button.is-loading {
+        opacity: 0.6 !important;
+        cursor: not-allowed !important;
+    }
+
+    /* Optional: Ensure FontAwesome icons don't inherit weird margins */
+    .ad-fab-button i {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .toast {
+        visibility: hidden;
+        min-width: 250px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 8px;
+        padding: 16px;
+        position: fixed;
+        z-index: 9999;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 14px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: visibility 0.3s;
+    }
+
+    .toast.show {
+        visibility: visible;
+    }
+
+    .toast.error {
+        background-color: #dc3545;
+    }
+
+    .toast i {
+        font-size: 18px;
+    }
+`;
+document.head.appendChild(style);
+
+// Create button once
+const btn = document.createElement('button');
+btn.className = 'ad-fab-button';
+btn.innerHTML = '<i class="fas fa-video"></i>';
+document.body.appendChild(btn);
+
+function updateButtonVisibility() {
+    const now = Date.now();
+    const canShow = (now - getPrevTime() >= COOLDOWN_MS) && isAdReady;
+
+    if (canShow) {
+        btn.style.display = 'flex';
+        btn.disabled = false; // Re-enable when ready
+    } else {
+        btn.style.display = 'none';
+        btn.disabled = true; // Stay disabled when hidden
+    }
+}
+
+document.addEventListener('deviceready', async () => {
+alert('device ready');
+    interstitial = new admob.InterstitialAd({
+        adUnitId: 'ca-app-pub-5188642994982403/1811807909', // Test ID
+    });
+
+    interstitial.on('load', () => {
+        isAdReady = true;
+        btn.classList.remove('is-loading');
+        updateButtonVisibility();
+    });
+
+    interstitial.on('loadfail', () => {
+        isAdReady = false;
+        updateButtonVisibility();
+        setTimeout(() => interstitial.load(), 15000); // Retry
+    });
+
+    // Start initial load
+    if (Date.now() - getPrevTime() >= COOLDOWN_MS) {
+        interstitial.load();
+    }
+    
+    setInterval(updateButtonVisibility, 3000);
+}, false);
+
+btn.addEventListener('click', async () => {
+    // Prevent double-clicking immediately
+    if (isAdReady && !btn.disabled) {
+        btn.disabled = true; // 1. LOCK BUTTON IMMEDIATELY
+        
+        try {
+            await interstitial.show();
+            setPrevTime();
+            isAdReady = false;
+            updateButtonVisibility(); // 2. HIDE BUTTON
+        } catch (e) {
+            console.error("Show failed", e);
+            btn.disabled = false; // Unlock if the ad failed to show
+        }
+    }
+});
+
+document.addEventListener('admob.ad.dismiss', () => {
+    isAdReady = false;
+    updateButtonVisibility();
+    // Wait until the 1-minute mark is almost up to fetch the next ad
+    setTimeout(() => interstitial.load(), COOLDOWN_MS - 5000);
+});
+
