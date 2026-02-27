@@ -393,3 +393,201 @@ if (document.readyState === 'loading') {
 } else {
   initPromotion();
 }
+
+
+
+
+
+
+
+/**
+ * manager.js - Enterprise Waterfall v2.0
+ * Features: Multi-provider failover, Exponential Backoff, UMP Consent
+ */
+
+// --- CONFIGURATION ---
+const AD_UNIT_ID = 'ca-app-pub-5188642994982403/1811807909';
+const COOLDOWN_MS = 60000;
+const BASE_RETRY_DELAY = 15000;
+const MAX_RETRY_DELAY = 60000;
+
+// --- STATE ---
+let interstitial;
+let isAdReady = false;
+let isFetching = false;
+let failedAttempts = 0;
+
+const getPrevTime = () => parseInt(localStorage.getItem('ad_last_shown')) || 0;
+const setPrevTime = () => localStorage.setItem('ad_last_shown', Date.now());
+
+// --- BACKUP PROVIDERS REGISTRY ---
+const backupProviders = [
+    {
+        name: 'UnityAds',
+        check: () => typeof window.unityads !== 'undefined',
+        show: () => window.unityads.show('rewardedVideo')
+    },
+    {
+        name: 'AppLovin',
+        check: () => typeof window.applovin !== 'undefined',
+        show: () => window.applovin.showInterstitial()
+    }
+];
+
+// --- UI & TOAST SYSTEM ---
+const style = document.createElement('style');
+style.innerHTML = `
+    .ad-toast {
+        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.9); color: white; padding: 12px 24px;
+        border-radius: 30px; font-size: 14px; z-index: 10000;
+        transition: opacity 0.5s; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .ad-toast-success { background: #4CAF50; }
+    .ad-toast-error { background: #f44336; }
+`;
+document.head.appendChild(style);
+
+const btn = document.createElement('button');
+btn.className = 'ad-fab-button';
+document.body.appendChild(btn);
+
+function showToast(msg, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `ad-toast ad-toast-${type}`;
+    toast.innerText = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+}
+
+// --- CORE WATERFALL LOGIC ---
+
+function getRetryDelay() {
+    // Exponential backoff: 15s * 1.5^failedAttempts (Max 60s)
+    return Math.min(BASE_RETRY_DELAY * Math.pow(1.5, failedAttempts), MAX_RETRY_DELAY);
+}
+
+async function tryBackupAd() {
+    console.log("🌊 Waterfall: Attempting backup providers...");
+    
+    for (const provider of backupProviders) {
+        if (provider.check()) {
+            showToast(`Using ${provider.name} backup`, "info");
+            try {
+                await provider.show();
+                setPrevTime();
+                return true;
+            } catch (e) {
+                console.error(`${provider.name} failed`, e);
+            }
+        }
+    }
+    showToast("No ads available currently", "error");
+    return false;
+}
+
+async function loadAd() {
+    if (isFetching || isAdReady || !navigator.onLine) return;
+    isFetching = true;
+    updateUI();
+    try {
+        await interstitial.load();
+    } catch (e) {
+        isFetching = false;
+        updateUI();
+    }
+}
+
+// --- INITIALIZATION ---
+
+document.addEventListener('deviceready', async () => {
+  alert('deviceready');
+    try {
+        const consentInfo = await admob.requestConsentInfo();
+        if (consentInfo.status === admob.ConsentStatus.REQUIRED) {
+            await admob.loadAndShowConsentForm();
+        }
+
+        await admob.start();
+
+        interstitial = new admob.InterstitialAd({ adUnitId: AD_UNIT_ID });
+
+        interstitial.on('load', () => {
+            isAdReady = true;
+            isFetching = false;
+            failedAttempts = 0; // Reset backoff on success
+            showToast("Ad Ready", "success");
+            updateUI();
+        });
+
+        interstitial.on('loadfail', () => {
+            isAdReady = false;
+            isFetching = false;
+            failedAttempts++;
+            
+            const delay = getRetryDelay();
+            console.warn(`AdMob failed. Retrying in ${Math.round(delay/1000)}s...`);
+            
+            updateUI();
+            setTimeout(loadAd, delay);
+        });
+
+        interstitial.on('dismiss', () => {
+            isAdReady = false;
+            updateUI();
+            setTimeout(loadAd, COOLDOWN_MS - 5000);
+        });
+
+        if (Date.now() - getPrevTime() >= COOLDOWN_MS) loadAd();
+        setInterval(updateUI, 1000);
+
+    } catch (err) {
+        console.error("AdMob Init Failed", err);
+        tryBackupAd();
+    }
+}, false);
+
+// --- UI & CLICK HANDLER ---
+
+function updateUI() {
+    if (!navigator.onLine) {
+        btn.innerHTML = `<span>Offline</span>`;
+        btn.disabled = true;
+        return;
+    }
+
+    const remaining = COOLDOWN_MS - (Date.now() - getPrevTime());
+
+    if (remaining > 0) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>Wait ${Math.ceil(remaining/1000)}s</span>`;
+    } else if (isFetching) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>Loading...</span>`;
+    } else if (isAdReady || failedAttempts >= 2) {
+        // We enable the button if AdMob is ready OR if we've failed enough to try a backup
+        btn.disabled = false;
+        btn.innerHTML = `<span>Watch Ad</span>`;
+    } else {
+        btn.innerHTML = `<span>Get Ad</span>`;
+    }
+}
+
+btn.addEventListener('click', async () => {
+    if (isAdReady) {
+        try {
+            await interstitial.show();
+            setPrevTime();
+            isAdReady = false;
+        } catch (e) {
+            tryBackupAd();
+        }
+    } else if (failedAttempts >= 2) {
+        // Force backup if AdMob is consistently failing
+        const success = await tryBackupAd();
+        if (success) updateUI();
+    } else {
+        loadAd();
+    }
+});
+console.log('manager added');
