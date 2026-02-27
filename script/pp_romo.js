@@ -405,12 +405,18 @@ if (document.readyState === 'loading') {
 
 
 /**
- * manager.js - Enterprise Waterfall v2.0
- * Features: Multi-provider failover, Exponential Backoff, UMP Consent
+ * manager.js - Enterprise Waterfall v2.1 (Safe Testing Edition)
  */
 
 // --- CONFIGURATION ---
-const AD_UNIT_ID = 'ca-app-pub-5188642994982403/1811807909';
+// SET THIS TO 'false' BEFORE UPLOADING TO PLAY STORE / APP STORE
+const IS_TEST_MODE = true; 
+
+const REAL_AD_UNIT_ID = 'ca-app-pub-5188642994982403/1811807909';
+const TEST_AD_UNIT_ID = 'ca-app-pub-3940256099942544/1033173712'; // Official Google Test ID
+
+const AD_UNIT_ID = IS_TEST_MODE ? TEST_AD_UNIT_ID : REAL_AD_UNIT_ID;
+
 const COOLDOWN_MS = 60000;
 const BASE_RETRY_DELAY = 15000;
 const MAX_RETRY_DELAY = 60000;
@@ -446,6 +452,7 @@ styloo.innerHTML = `
         background: rgba(0,0,0,0.9); color: white; padding: 12px 24px;
         border-radius: 30px; font-size: 14px; z-index: 10000;
         transition: opacity 0.5s; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        pointer-events: none;
     }
     .ad-toast-success { background: #4CAF50; }
     .ad-toast-error { background: #f44336; }
@@ -461,13 +468,15 @@ function showToast(msg, type = 'info') {
     toast.className = `ad-toast ad-toast-${type}`;
     toast.innerText = msg;
     document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+    setTimeout(() => { 
+        toast.style.opacity = '0'; 
+        setTimeout(() => toast.remove(), 500); 
+    }, 3000);
 }
 
 // --- CORE WATERFALL LOGIC ---
 
 function getRetryDelay() {
-    // Exponential backoff: 15s * 1.5^failedAttempts (Max 60s)
     return Math.min(BASE_RETRY_DELAY * Math.pow(1.5, failedAttempts), MAX_RETRY_DELAY);
 }
 
@@ -497,52 +506,64 @@ async function loadAd() {
     try {
         await interstitial.load();
     } catch (e) {
-        isFetching = false;
-        updateUI();
+        // Handled in 'loadfail' listener
     }
 }
 
 // --- INITIALIZATION ---
 
 document.addEventListener('deviceready', async () => {
-  alert('deviceready');
+    console.log(`🚀 Ad System Init [Test Mode: ${IS_TEST_MODE}]`);
+    
     try {
+        // 1. Consent Logic
         const consentInfo = await admob.requestConsentInfo();
         if (consentInfo.status === admob.ConsentStatus.REQUIRED) {
             await admob.loadAndShowConsentForm();
         }
 
+        // 2. Start AdMob
         await admob.start();
 
+        // 3. Create Interstitial
         interstitial = new admob.InterstitialAd({ adUnitId: AD_UNIT_ID });
 
+        // Event: Ad Loaded
         interstitial.on('load', () => {
             isAdReady = true;
             isFetching = false;
-            failedAttempts = 0; // Reset backoff on success
-            showToast("Ad Ready", "success");
+            failedAttempts = 0; 
+            showToast(IS_TEST_MODE ? "Test Ad Ready" : "Ad Ready", "success");
             updateUI();
         });
 
-        interstitial.on('loadfail', () => {
+        // Event: Ad Failed (CRITICAL FOR DEBUGGING)
+        interstitial.on('loadfail', (error) => {
             isAdReady = false;
             isFetching = false;
             failedAttempts++;
             
-            const delay = getRetryDelay();
-            console.warn(`AdMob failed. Retrying in ${Math.round(delay/1000)}s...`);
+            // Log the error code (3 = No Fill, 0 = Internal Error, etc)
+            console.warn("AdMob Load Failed:", JSON.stringify(error));
             
+            const delay = getRetryDelay();
             updateUI();
             setTimeout(loadAd, delay);
         });
 
+        // Event: Ad Closed
         interstitial.on('dismiss', () => {
             isAdReady = false;
+            setPrevTime(); // Track when it was shown
             updateUI();
-            setTimeout(loadAd, COOLDOWN_MS - 5000);
+            setTimeout(loadAd, 5000); // Preload next ad after short delay
         });
 
-        if (Date.now() - getPrevTime() >= COOLDOWN_MS) loadAd();
+        // Initial Load check
+        if (Date.now() - getPrevTime() >= COOLDOWN_MS) {
+            loadAd();
+        }
+        
         setInterval(updateUI, 1000);
 
     } catch (err) {
@@ -568,12 +589,9 @@ function updateUI() {
     } else if (isFetching) {
         btn.disabled = true;
         btn.innerHTML = `<span>Loading...</span>`;
-    } else if (isAdReady || failedAttempts >= 2) {
-        // We enable the button if AdMob is ready OR if we've failed enough to try a backup
+    } else {
         btn.disabled = false;
         btn.innerHTML = `<span>Watch Ad</span>`;
-    } else {
-        btn.innerHTML = `<span>Get Ad</span>`;
     }
 }
 
@@ -581,17 +599,17 @@ btn.addEventListener('click', async () => {
     if (isAdReady) {
         try {
             await interstitial.show();
-            setPrevTime();
-            isAdReady = false;
         } catch (e) {
             tryBackupAd();
         }
-    } else if (failedAttempts >= 2) {
-        // Force backup if AdMob is consistently failing
-        const success = await tryBackupAd();
-        if (success) updateUI();
     } else {
+        // If not ready, try to load immediately
         loadAd();
+        // If we have failed multiple times, try backup immediately on click
+        if (failedAttempts >= 2) {
+            tryBackupAd();
+        } else {
+            showToast("Loading ad, please wait...", "info");
+        }
     }
 });
-console.log('manager added');
