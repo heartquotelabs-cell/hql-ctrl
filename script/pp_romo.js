@@ -403,15 +403,15 @@ if (document.readyState === 'loading') {
 
 // Use a different variable name to avoid conflicts
 let admobInterstitial;
-let isAdReady = false; 
+let isAdReadyy = false; 
 
-const COOLDOWN_MS = 60000; // 1 minute
-const getPrevTime = () => parseInt(localStorage.getItem('ad_last_shown')) || 0;
-const setPrevTime = () => localStorage.setItem('ad_last_shown', Date.now());
+const COOLDOWN_MSs = 60000; // 1 minute
+const getPrevTimee = () => parseInt(localStorage.getItem('ad_last_shown')) || 0;
+const setPrevTimee = () => localStorage.setItem('ad_last_shown', Date.now());
 
 // Add styles
-const style = document.createElement('style');
-style.innerHTML = `
+const stylooo = document.createElement('style');
+stylooo.innerHTML = `
     /* AdMob Floating Button */
     .ad-fab-button {
         display: none; /* Hidden by default - JS will show it */
@@ -420,7 +420,7 @@ style.innerHTML = `
         right: 15px !important;
         width: 35px !important;
         height: 35px !important;
-        background-color: transparent !important;
+        background-color: rgba(0, 0, 0, 0.7) !important;
         color: #ffffff !important;
         border: none !important;
         border-radius: 50% !important;
@@ -435,20 +435,17 @@ style.innerHTML = `
         transition: transform 0.2s, opacity 0.3s !important;
     }
 
+    .ad-fab-button:hover {
+        background-color: rgba(0, 0, 0, 0.9) !important;
+    }
+
     .ad-fab-button:active {
         transform: scale(0.9);
-        background-color: rgba(0, 0, 0, 0.9) !important;
     }
 
     .ad-fab-button.is-loading {
         opacity: 0.6 !important;
         cursor: not-allowed !important;
-    }
-
-    /* Optional: Ensure FontAwesome icons don't inherit weird margins */
-    .ad-fab-button i {
-        margin: 0 !important;
-        padding: 0 !important;
     }
 
     .toast {
@@ -484,86 +481,171 @@ style.innerHTML = `
         font-size: 18px;
     }
 `;
-document.head.appendChild(style);
+document.head.appendChild(stylooo);
 
 // Create button once
-const btn = document.createElement('button');
-btn.className = 'ad-fab-button';
-btn.innerHTML = '<i class="fas fa-video"></i>';
-document.body.appendChild(btn);
+const btnn = document.createElement('button');
+btnn.className = 'ad-fab-button';
+btnn.innerHTML = '<i class="fas fa-video"></i>';
+btnn.setAttribute('aria-label', 'Watch video ad');
+document.body.appendChild(btnn);
+
+// Toast notification function
+function showToast(message, isError = false) {
+    // Remove existing toast if any
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${isError ? 'error' : ''}`;
+    toast.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> ${message}`;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('show'), 100);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 
 function updateButtonVisibility() {
     const now = Date.now();
-    const canShow = (now - getPrevTime() >= COOLDOWN_MS) && isAdReady;
+    const timeSinceLastAd = now - getPrevTimee();
+    const canShow = (timeSinceLastAd >= COOLDOWN_MSs) && isAdReadyy;
 
     if (canShow) {
-        btn.style.display = 'flex';
-        btn.disabled = false;
+        btnn.style.display = 'flex';
+        btnn.disabled = false;
+        btnn.classList.remove('is-loading');
     } else {
-        btn.style.display = 'none';
-        btn.disabled = true;
+        btnn.style.display = 'none';
+        btnn.disabled = true;
+        if (timeSinceLastAd < COOLDOWN_MSs) {
+            // Optionally show when it will be available again
+            const minutesLeft = Math.ceil((COOLDOWN_MSs - timeSinceLastAd) / 60000);
+            console.log(`Ad available in ${minutesLeft} minute(s)`);
+        }
     }
 }
 
-document.addEventListener('deviceready', async () => {
-alert('device readyyyy');
+// Wait for device ready
+document.addEventListener('deviceready', function() {
+    console.log('Device ready event fired');
+    initializeAdMob();
+}, false);
+
+async function initializeAdMob() {
     try {
         // Check if admob is available
         if (typeof admob === 'undefined') {
-            console.error("AdMob Plus plugin not installed");
+            console.log("AdMob Plus plugin not installed");
+            showToast('AdMob plugin not available', true);
             return;
         }
 
-        // Create interstitial with different variable name
+        console.log('AdMob plugin found, initializing...');
+
+        // Create interstitial with test ID for development
+        // Use test ID during development, replace with real ID for production
+        const adUnitId = 'ca-app-pub-5188642994982403/1811807909'; // Test ID
+        // const adUnitId = 'ca-app-pub-5188642994982403/1811807909'; // Production ID
+        
         admobInterstitial = new admob.InterstitialAd({
-            adUnitId: 'ca-app-pub-5188642994982403/1811807909',
+            adUnitId: adUnitId,
         });
 
+        // Set up event listeners
         admobInterstitial.on('load', () => {
-            isAdReady = true;
-            btn.classList.remove('is-loading');
+            console.log('Ad loaded successfully');
+            isAdReadyy = true;
+            btnn.classList.remove('is-loading');
             updateButtonVisibility();
+            showToast('Ad ready to watch!');
         });
 
-        admobInterstitial.on('loadfail', () => {
-            isAdReady = false;
+        admobInterstitial.on('loadfail', (error) => {
+            console.error('Ad failed to load:', error);
+            isAdReadyy = false;
             updateButtonVisibility();
+            // Retry loading after 15 seconds
             setTimeout(() => {
-                if (admobInterstitial) admobInterstitial.load();
+                if (admobInterstitial && Date.now() - getPrevTimee() >= COOLDOWN_MSs) {
+                    console.log('Retrying ad load...');
+                    admobInterstitial.load();
+                }
             }, 15000);
         });
 
-        // Start initial load
-        if (Date.now() - getPrevTime() >= COOLDOWN_MS) {
+        admobInterstitial.on('show', () => {
+            console.log('Ad shown');
+            setPrevTimee();
+        });
+
+        admobInterstitial.on('dismiss', () => {
+            console.log('Ad dismissed');
+            isAdReadyy = false;
+            updateButtonVisibility();
+            // Load next ad after cooldown
+            setTimeout(() => {
+                if (admobInterstitial && Date.now() - getPrevTimee() >= COOLDOWN_MSs) {
+                    admobInterstitial.load();
+                }
+            }, COOLDOWN_MSs - 5000);
+        });
+
+        admobInterstitial.on('showfail', (error) => {
+            console.error('Ad show failed:', error);
+            btnn.disabled = false;
+            btnn.classList.remove('is-loading');
+            showToast('Failed to show ad', true);
+        });
+
+        // Start initial load if cooldown period has passed
+        if (Date.now() - getPrevTimee() >= COOLDOWN_MSs) {
+            console.log('Loading initial ad...');
             admobInterstitial.load();
+        } else {
+            console.log('Ad cooldown period active');
         }
         
+        // Update button visibility every 3 seconds
         setInterval(updateButtonVisibility, 3000);
+        
+        console.log('AdMob initialization complete');
     } catch (error) {
         console.error("AdMob initialization error:", error);
+        showToast('Failed to initialize ads', true);
     }
-}, false);
+}
 
-btn.addEventListener('click', async () => {
-    if (isAdReady && !btn.disabled && admobInterstitial) {
-        btn.disabled = true;
+btnn.addEventListener('click', async () => {
+    if (isAdReadyy && !btnn.disabled && admobInterstitial) {
+        btnn.disabled = true;
+        btnn.classList.add('is-loading');
         
         try {
+            console.log('Attempting to show ad...');
             await admobInterstitial.show();
-            setPrevTime();
-            isAdReady = false;
-            updateButtonVisibility();
         } catch (e) {
             console.error("Show failed", e);
-            btn.disabled = false;
+            btnn.disabled = false;
+            btnn.classList.remove('is-loading');
+            showToast('Failed to show ad', true);
+        }
+    } else {
+        if (!isAdReadyy) {
+            showToast('Ad not ready yet', true);
+        } else if (btnn.disabled) {
+            showToast('Please wait...', true);
         }
     }
 });
 
-document.addEventListener('admob.ad.dismiss', () => {
-    isAdReady = false;
-    updateButtonVisibility();
-    setTimeout(() => {
-        if (admobInterstitial) admobInterstitial.load();
-    }, COOLDOWN_MS - 5000);
-});
+// Backup event listener for older Cordova versions
+document.addEventListener('deviceready', function() {
+  alert('deviceready');
+    // This is just to ensure compatibility
+}, false);
+console.log('new.js');
