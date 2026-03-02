@@ -401,8 +401,13 @@ if (document.readyState === 'loading') {
 
 
 
+
+
+
+
 // Use a different variable name to avoid conflicts
 let admobInterstitial;
+let admobBanner;
 let isAdReadyy = false; 
 
 const COOLDOWN_MSs = 60000; // 1 minute
@@ -448,6 +453,25 @@ stylooo.innerHTML = `
         cursor: not-allowed !important;
     }
 
+    /* Banner Ad Container */
+    .banner-ad-container {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        background-color: rgba(0, 0, 0, 0.05) !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        z-index: 2147483646 !important;
+        pointer-events: none !important;
+    }
+
+    .banner-ad-container admob-banner {
+        pointer-events: auto !important;
+    }
+
+    /* Toast notification */
     .toast {
         visibility: hidden;
         min-width: 250px;
@@ -458,7 +482,7 @@ stylooo.innerHTML = `
         padding: 16px;
         position: fixed;
         z-index: 9999;
-        bottom: 30px;
+        bottom: 100px; /* Adjusted to be above banner */
         left: 50%;
         transform: translateX(-50%);
         font-size: 14px;
@@ -480,6 +504,12 @@ stylooo.innerHTML = `
     .toast i {
         font-size: 18px;
     }
+
+    /* Add padding to body to account for banner */
+    body {
+        padding-bottom: 60px !important;
+        transition: padding-bottom 0.3s;
+    }
 `;
 document.head.appendChild(stylooo);
 
@@ -490,6 +520,12 @@ btnn.innerHTML = '<i class="fas fa-video"></i>';
 btnn.setAttribute('aria-label', 'Watch video ad');
 document.body.appendChild(btnn);
 
+// Create banner container
+const bannerContainer = document.createElement('div');
+bannerContainer.className = 'banner-ad-container';
+bannerContainer.id = 'banner-ad-container';
+document.body.appendChild(bannerContainer);
+
 // Toast notification function
 function showToast(message, isError = false) {
     // Remove existing toast if any
@@ -497,12 +533,12 @@ function showToast(message, isError = false) {
     if (existingToast) {
         existingToast.remove();
     }
-    
+
     const toast = document.createElement('div');
     toast.className = `toast ${isError ? 'error' : ''}`;
     toast.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> ${message}`;
     document.body.appendChild(toast);
-    
+
     setTimeout(() => toast.classList.add('show'), 100);
     setTimeout(() => {
         toast.classList.remove('show');
@@ -530,6 +566,79 @@ function updateButtonVisibility() {
     }
 }
 
+// Function to remove existing banner ads
+function removeExistingBanners() {
+    // Remove any existing banner elements
+    const existingBanners = document.querySelectorAll('admob-banner');
+    existingBanners.forEach(banner => banner.remove());
+    
+    // Clear the container
+    if (bannerContainer) {
+        bannerContainer.innerHTML = '';
+    }
+}
+
+// Function to create banner ad
+async function createBannerAd() {
+    try {
+        // Remove any existing banners first (prevents duplication)
+        removeExistingBanners();
+
+        // Create banner with test ID for development
+        // Replace with your production ID when ready
+        const bannerAdUnitId = 'ca-app-pub-5188642994982403/7847467013'; // Test banner ID
+
+        // Create new banner instance
+        admobBanner = new admob.BannerAd({
+            adUnitId: bannerAdUnitId,
+            position: 'bottom', // Position at bottom
+            adaptive: true, // Make it adaptive
+            margin: 0, // No margin
+        });
+
+        // Set up banner event listeners
+        admobBanner.on('load', () => {
+            console.log('Banner ad loaded successfully');
+            // Ensure only one banner is shown
+            setTimeout(() => {
+                const banners = document.querySelectorAll('admob-banner');
+                if (banners.length > 1) {
+                    console.log('Multiple banners detected, cleaning up...');
+                    // Keep only the last one
+                    for (let i = 0; i < banners.length - 1; i++) {
+                        banners[i].remove();
+                    }
+                }
+            }, 500);
+        });
+
+        admobBanner.on('loadfail', (error) => {
+            console.error('Banner ad failed to load:', error);
+            // Retry banner load after 30 seconds
+            setTimeout(() => {
+                if (admobBanner) {
+                    console.log('Retrying banner load...');
+                    createBannerAd();
+                }
+            }, 30000);
+        });
+
+        // Load the banner
+        await admobBanner.load();
+        
+        console.log('Banner ad created successfully');
+        
+    } catch (error) {
+        console.error("Banner creation error:", error);
+        // Retry after 1 minute
+        setTimeout(() => {
+            if (admobBanner) {
+                createBannerAd();
+            }
+        }, 60000);
+    }
+}
+
 // Wait for device ready
 document.addEventListener('deviceready', function() {
     console.log('Device ready event fired');
@@ -549,16 +658,15 @@ async function initializeAdMob() {
 
         // Create interstitial with test ID for development
         // Use test ID during development, replace with real ID for production
-        const adUnitId = 'ca-app-pub-5188642994982403/1811807909'; // Test ID
-        // const adUnitId = 'ca-app-pub-5188642994982403/1811807909'; // Production ID
-        
+        const adUnitId = 'ca-app-pub-5188642994982403/1811807909'; // Test interstitial ID
+
         admobInterstitial = new admob.InterstitialAd({
             adUnitId: adUnitId,
         });
 
-        // Set up event listeners
+        // Set up event listeners for interstitial
         admobInterstitial.on('load', () => {
-            console.log('Ad loaded successfully');
+            console.log('Interstitial ad loaded successfully');
             isAdReadyy = true;
             btnn.classList.remove('is-loading');
             updateButtonVisibility();
@@ -566,25 +674,25 @@ async function initializeAdMob() {
         });
 
         admobInterstitial.on('loadfail', (error) => {
-            console.error('Ad failed to load:', error);
+            console.error('Interstitial ad failed to load:', error);
             isAdReadyy = false;
             updateButtonVisibility();
             // Retry loading after 15 seconds
             setTimeout(() => {
                 if (admobInterstitial && Date.now() - getPrevTimee() >= COOLDOWN_MSs) {
-                    console.log('Retrying ad load...');
+                    console.log('Retrying interstitial load...');
                     admobInterstitial.load();
                 }
             }, 15000);
         });
 
         admobInterstitial.on('show', () => {
-            console.log('Ad shown');
+            console.log('Interstitial ad shown');
             setPrevTimee();
         });
 
         admobInterstitial.on('dismiss', () => {
-            console.log('Ad dismissed');
+            console.log('Interstitial ad dismissed');
             isAdReadyy = false;
             updateButtonVisibility();
             // Load next ad after cooldown
@@ -596,7 +704,7 @@ async function initializeAdMob() {
         });
 
         admobInterstitial.on('showfail', (error) => {
-            console.error('Ad show failed:', error);
+            console.error('Interstitial show failed:', error);
             btnn.disabled = false;
             btnn.classList.remove('is-loading');
             showToast('Failed to show ad', true);
@@ -604,15 +712,31 @@ async function initializeAdMob() {
 
         // Start initial load if cooldown period has passed
         if (Date.now() - getPrevTimee() >= COOLDOWN_MSs) {
-            console.log('Loading initial ad...');
+            console.log('Loading initial interstitial...');
             admobInterstitial.load();
         } else {
-            console.log('Ad cooldown period active');
+            console.log('Interstitial cooldown period active');
         }
-        
+
+        // Create banner ad
+        await createBannerAd();
+
         // Update button visibility every 3 seconds
         setInterval(updateButtonVisibility, 3000);
-        
+
+        // Periodically check for duplicate banners (every 30 seconds)
+        setInterval(() => {
+            const banners = document.querySelectorAll('admob-banner');
+            if (banners.length > 1) {
+                console.log('Duplicate banners detected, cleaning up...');
+                removeExistingBanners();
+                // Recreate banner if needed
+                if (admobBanner) {
+                    createBannerAd();
+                }
+            }
+        }, 30000);
+
         console.log('AdMob initialization complete');
     } catch (error) {
         console.error("AdMob initialization error:", error);
@@ -624,7 +748,7 @@ btnn.addEventListener('click', async () => {
     if (isAdReadyy && !btnn.disabled && admobInterstitial) {
         btnn.disabled = true;
         btnn.classList.add('is-loading');
-        
+
         try {
             console.log('Attempting to show ad...');
             await admobInterstitial.show();
@@ -643,9 +767,27 @@ btnn.addEventListener('click', async () => {
     }
 });
 
+// Handle pause/resume to prevent banner duplication
+document.addEventListener('pause', () => {
+    console.log('App paused, cleaning up banners...');
+    if (admobBanner) {
+        admobBanner.hide();
+    }
+}, false);
+
+document.addEventListener('resume', () => {
+    console.log('App resumed, restoring banner...');
+    if (admobBanner) {
+        admobBanner.show();
+    } else {
+        createBannerAd();
+    }
+}, false);
+
 // Backup event listener for older Cordova versions
 document.addEventListener('deviceready', function() {
-  alert('deviceready');
+    alert('deviceready');
     // This is just to ensure compatibility
 }, false);
-console.log('new.js');
+
+console.log('AdMob integration with banner and interstitial loaded');
