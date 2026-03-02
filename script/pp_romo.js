@@ -413,26 +413,32 @@ if (document.readyState === 'loading') {
 let banner;
 
 document.addEventListener('deviceready', async () => {
-  // 1. You must start the SDK first!
-  await admob.start();
+  try {
+    // 1. Initialize the SDK
+    await admob.start();
 
-  banner = new admob.BannerAd({
-    adUnitId: 'ca-app-pub-5188642994982403/7847467013',
-    position: 'bottom',
-  });
+    // 2. Use the GOOGLE TEST ID here (not your real one)
+    banner = new admob.BannerAd({
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111', 
+      position: 'bottom',
+    });
 
-  // 2. Setup listeners BEFORE loading
-  banner.on('load', async () => {
-    console.log("Ad loaded! Now showing...");
-    await banner.show(); // Now it's safe to show
-  });
+    // 3. Listen for the load event
+    banner.on('load', async () => {
+      console.log("Test Ad Loaded!");
+      await banner.show();
+    });
 
-  banner.on('loadfail', (err) => {
-    console.error("Ad failed to load:", err);
- alert('loadfail banner');
-  });
+    banner.on('loadfail', (err) => {
+      // If this fails, it's usually a network or plugin issue
+      alert('Test Ad Fail: ' + JSON.stringify(err));
+    });
 
-  // 3. Trigger the load
-  await banner.load();
-  
+    // 4. Load the test ad
+    await banner.load();
+
+  } catch (e) {
+    console.error("AdMob Start Error:", e);
+    alert('AdMob Start Error');
+  }
 }, false);
