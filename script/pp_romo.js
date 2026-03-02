@@ -405,32 +405,30 @@ if (document.readyState === 'loading') {
 
 
 
- 
-let banner;
+ let banner;
 
 document.addEventListener('deviceready', async () => {
     try {
         await admob.start();
 
-        // window.admobAds persists across pages — hide any surviving banner
-        const allAds = window.admobAds || {};
-        for (const id in allAds) {
-            try {
-                await allAds[id].hide();
-            } catch(e) {}
-            delete allAds[id];
+        // Only create the banner ONCE if it doesn't already exist
+        if (!window.admobBanner) {
+            window.admobBanner = new admob.BannerAd({
+                adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+                position: 'bottom',
+            });
+
+            window.admobBanner.on('load', async () => {
+                await window.admobBanner.show();
+            });
+
+            await window.admobBanner.load();
+        } else {
+            // Banner already exists — just show it
+            await window.admobBanner.show();
         }
 
-        banner = new admob.BannerAd({
-            adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-            position: 'bottom',
-        });
-
-        banner.on('load', async () => {
-            await banner.show();
-        });
-
-        await banner.load();
+        banner = window.admobBanner;
 
     } catch(e) {
         console.error("AdMob Error:", e);
@@ -439,8 +437,8 @@ document.addEventListener('deviceready', async () => {
 
 window.addEventListener('pagehide', () => {
     try {
-        if (banner) {
-            banner.hide();
+        if (window.admobBanner) {
+            window.admobBanner.hide(); // Just hide, don't destroy
         }
     } catch(e) {}
 });
