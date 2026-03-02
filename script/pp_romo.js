@@ -410,35 +410,33 @@ if (document.readyState === 'loading') {
 
 
 
-let banner;
+// This variable is reset to 'undefined' every time you change pages
+let banner; 
 
 document.addEventListener('deviceready', async () => {
   try {
-    // 1. Initialize the SDK
     await admob.start();
 
-    // 2. Use the GOOGLE TEST ID here (not your real one)
+    // STEP 1: Force-kill any ads left over by the PREVIOUS page
+    // This is the only way to prevent duplicates in Multi-Page Apps
+    if (admob.BannerAd.destroyAll) {
+        await admob.BannerAd.destroyAll();
+    }
+
+    // STEP 2: Create a fresh banner for this specific page
     banner = new admob.BannerAd({
       adUnitId: 'ca-app-pub-3940256099942544/6300978111', 
       position: 'bottom',
     });
 
-    // 3. Listen for the load event
     banner.on('load', async () => {
-      console.log("Test Ad Loaded!");
       await banner.show();
     });
 
-    banner.on('loadfail', (err) => {
-      // If this fails, it's usually a network or plugin issue
-      alert('Test Ad Fail: ' + JSON.stringify(err));
-    });
-
-    // 4. Load the test ad
     await banner.load();
 
   } catch (e) {
-    console.error("AdMob Start Error:", e);
-    alert('AdMob Start Error');
+    console.error("AdMob Error:", e);
   }
 }, false);
+
