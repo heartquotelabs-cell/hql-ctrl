@@ -409,34 +409,33 @@ if (document.readyState === 'loading') {
 
 
 
-
-// This variable is reset to 'undefined' every time you change pages
-let banner; 
+let banner;
 
 document.addEventListener('deviceready', async () => {
   try {
     await admob.start();
 
-    // STEP 1: Force-kill any ads left over by the PREVIOUS page
-    // This is the only way to prevent duplicates in Multi-Page Apps
-    if (admob.BannerAd.destroyAll) {
-        await admob.BannerAd.destroyAll();
-    }
-
-    // STEP 2: Create a fresh banner for this specific page
+    // 1. Create the banner with a STATIC ID
+    // This tells the plugin: "This is THE banner for my app."
     banner = new admob.BannerAd({
       adUnitId: 'ca-app-pub-3940256099942544/6300978111', 
       position: 'bottom',
+      id: 'my-main-banner' // <--- ADD THIS LINE
     });
 
+    // 2. The 'load' event only needs to trigger 'show' once
     banner.on('load', async () => {
       await banner.show();
     });
 
+    // 3. Load it
+    // If the banner 'my-main-banner' already exists from the previous page,
+    // the plugin will simply update it instead of making a duplicate.
     await banner.load();
 
   } catch (e) {
     console.error("AdMob Error:", e);
   }
 }, false);
+
 
