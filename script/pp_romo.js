@@ -410,14 +410,29 @@ if (document.readyState === 'loading') {
 
 
 
-// The ONLY code you need - nothing else
-document.addEventListener('deviceready', function() {
-admob.start();
-    // Banner
-    const banner = new admob.BannerAd({
-        adUnitId: 'ca-app-pub-5188642994982403/7847467013',
-        position: 'bottom'
-    });
-    banner.load();
-    banner.on('load', () => banner.show());
+let banner;
+
+document.addEventListener('deviceready', async () => {
+  // 1. You must start the SDK first!
+  await admob.start();
+
+  banner = new admob.BannerAd({
+    adUnitId: 'ca-app-pub-5188642994982403/7847467013',
+    position: 'bottom',
+  });
+
+  // 2. Setup listeners BEFORE loading
+  banner.on('load', async () => {
+    console.log("Ad loaded! Now showing...");
+    await banner.show(); // Now it's safe to show
+  });
+
+  banner.on('loadfail', (err) => {
+    console.error("Ad failed to load:", err);
+ alert('loadfail banner');
+  });
+
+  // 3. Trigger the load
+  await banner.load();
+  
 }, false);
