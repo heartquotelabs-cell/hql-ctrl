@@ -408,32 +408,13 @@ if (document.readyState === 'loading') {
  
 
 
-
-let banner;
-
-// 1. THE CLEANUP (As you leave the page)
-window.addEventListener('beforeunload', async () => {
-    if (banner) {
-        // Use try/catch because the page might close 
-        // faster than the destroy command finishes
-        try {
-            await banner.destroy();
-            console.log("Banner destroyed before page change");
-        } catch (e) {
-            console.error(e);
-        }
-    }
-});
-
-// 2. THE INITIALIZATION (As you enter the page)
 document.addEventListener('deviceready', async () => {
     try {
         await admob.start();
 
-        // Safety check: Kill any orphans that survived the transition
-        if (admob.BannerAd.destroyAll) {
-            await admob.BannerAd.destroyAll();
-        }
+        // This is your REAL safety net — kills any banner 
+        // left behind by the previous page
+        await admob.BannerAd.destroyAll();
 
         banner = new admob.BannerAd({
             adUnitId: 'ca-app-pub-3940256099942544/6300978111',
@@ -446,10 +427,16 @@ document.addEventListener('deviceready', async () => {
 
         await banner.load();
 
-    } catch (e) {
+    } catch(e) {
         console.error("AdMob Error:", e);
     }
 }, false);
 
-
-
+// Synchronous exit cleanup — no async, no await
+window.addEventListener('pagehide', () => {
+    try {
+        // admob-cordova plugin exposes a synchronous 
+        // native bridge call for this exact reason
+        admob.BannerAd.destroyAll();  // No await — fire and forget
+    } catch(e) {}
+});
