@@ -406,21 +406,34 @@ if (document.readyState === 'loading') {
 
 
 /**
- * FIXED ADMOB INTEGRATION
- * Fixes: Proper banner loading sequence, visibility management, and error handling
+ * COMPLETE ADMOB INTEGRATION WITH DEBUGGING
  */
 
+// Global variables
 let admobInterstitial;
 let admobBanner;
 let isAdReadyy = false;
 let bannerRetryCount = 0;
-const MAX_BANNER_RETRIES = 3;
+let interRetryCount = 0;
+const MAX_RETRIES = 3;
+const COOLDOWN_MSs = 60000;
 
-const COOLDOWN_MSs = 60000; 
+// Storage helpers
 const getPrevTimee = () => parseInt(localStorage.getItem('ad_last_shown')) || 0;
 const setPrevTimee = () => localStorage.setItem('ad_last_shown', Date.now());
 
-// 1. Enhanced Styles with Banner Container
+// Debug logging
+function logAdStatus(message, data = null) {
+    const timestamp = new Date().toISOString();
+    console.log(`[AdMob Debug ${timestamp}] ${message}`, data || '');
+    
+    // Show toast for important errors
+    if (message.includes('fail') || message.includes('error')) {
+        showToast(message);
+    }
+}
+
+// 1. Add Styles
 const stylooo = document.createElement('style');
 stylooo.innerHTML = `
     .ad-fab-button {
@@ -444,7 +457,6 @@ stylooo.innerHTML = `
 
     .ad-fab-button.is-loading { opacity: 0.5; cursor: wait; }
 
-    /* Toast notification */
     .toast {
         visibility: hidden;
         min-width: 200px;
@@ -463,23 +475,20 @@ stylooo.innerHTML = `
     }
     .toast.show { visibility: visible; opacity: 1; }
 
-    /* Banner container with proper z-index and visibility */
     .admob-banner-container {
         position: fixed !important;
         bottom: 0 !important;
         left: 0 !important;
         width: 100% !important;
-        height: auto !important;
         min-height: 50px !important;
         z-index: 2147483646 !important;
-        background-color: transparent !important;
+        background: transparent !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
-        pointer-events: auto !important;
         visibility: visible !important;
         opacity: 1 !important;
-        transition: opacity 0.3s ease !important;
+        pointer-events: auto !important;
     }
 
     .admob-banner-container.hidden {
@@ -488,12 +497,12 @@ stylooo.innerHTML = `
     }
 
     body {
-        padding-bottom: 60px !important; /* Increased padding for banner */
-        transition: padding-bottom 0.3s ease !important;
+        padding-bottom: 0 !important;
+        transition: padding-bottom 0.3s;
     }
 
-    body.banner-hidden {
-        padding-bottom: 0 !important;
+    body.banner-visible {
+        padding-bottom: 60px !important;
     }
 `;
 document.head.appendChild(stylooo);
@@ -504,10 +513,10 @@ bannerContainer.className = 'admob-banner-container hidden';
 bannerContainer.id = 'admob-banner-container';
 document.body.appendChild(bannerContainer);
 
-// 2. UI Elements
+// UI Elements
 const btnn = document.createElement('button');
 btnn.className = 'ad-fab-button';
-btnn.innerHTML = '<i class="fas fa-video"></i>';
+btnn.innerHTML = '📺';
 document.body.appendChild(btnn);
 
 function showToast(message) {
@@ -522,119 +531,138 @@ function showToast(message) {
     }, 3000);
 }
 
-// 3. Fixed Banner Logic
-async function createBannerAd() {
-    try {
-
-         const bannerId = 'ca-app-pub-5188642994982403/7847467013'; // Your real ID
-
-        console.log('Creating banner ad with ID:', bannerId);
-
-        admobBanner = new admob.BannerAd({
-            adUnitId: bannerId,
-            position: 'bottom', // Position relative to container
-            layout: {
-                width: '100%',
-                height: 'auto'
-            },
-            adaptive: true
-        });
-
-        // Set the banner container
-        admobBanner.config.backgroundColor = 'transparent';
-        
-        // Listen for load events
-        admobBanner.on('load', () => {
-            console.log('Banner loaded successfully');
-            bannerRetryCount = 0; // Reset retry count on success
-            showBanner(); // Show the banner when loaded
-        });
-        
-        admobBanner.on('loadfail', (err) => {
-            console.error('Banner load failed', err);
-            alert('banner load fail');
-            // Retry logic with backoff
-            if (bannerRetryCount < MAX_BANNER_RETRIES) {
-                bannerRetryCount++;
-                const retryDelay = Math.min(30000 * bannerRetryCount, 120000); // Exponential backoff
-                console.log(`Retrying banner load in ${retryDelay/1000}s (attempt ${bannerRetryCount}/${MAX_BANNER_RETRIES})`);
-                setTimeout(() => createBannerAd(), retryDelay);
-            } else {
-                console.log('Max banner retries reached, hiding banner permanently');
-                alert('max banner tries reached');
-                hideBanner();
-            }
-        });
-
-        // Load the banner first
-        await admobBanner.load();
-        
-    } catch (e) {
-        console.error("Banner initialization error", e);
-        alert('banner error initialization');
-        // Hide banner on error
-        hideBanner();
-    }
-}
-
-// Helper functions to manage banner visibility
+// Banner functions
 function showBanner() {
-    if (!admobBanner) return;
+    if (!admobBanner) {
+        logAdStatus('Cannot show banner: not initialized');
+        return;
+    }
     
-    console.log('Showing banner');
+    logAdStatus('Showing banner');
     bannerContainer.classList.remove('hidden');
-    document.body.classList.remove('banner-hidden');
+    document.body.classList.add('banner-visible');
     
-    // Ensure the banner is actually shown
-    admobBanner.show().catch(err => {
-        console.error('Error showing banner:', err);
-    });
+    admobBanner.show()
+        .then(() => logAdStatus('Banner show successful'))
+        .catch(err => logAdStatus('Error showing banner', err));
 }
 
 function hideBanner() {
-    console.log('Hiding banner');
+    logAdStatus('Hiding banner');
     bannerContainer.classList.add('hidden');
-    document.body.classList.add('banner-hidden');
+    document.body.classList.remove('banner-visible');
     
     if (admobBanner) {
-        admobBanner.hide().catch(err => {
-            console.error('Error hiding banner:', err);
-        });
+        admobBanner.hide()
+            .catch(err => logAdStatus('Error hiding banner', err));
     }
 }
 
-// 4. Interstitial Logic (unchanged but improved error handling)
-async function initInterstitial() {
-    const interId = 'ca-app-pub-5188642994982403/1811807909';
-
+// 2. Initialize Banner with Better Error Handling
+async function createBannerAd() {
     try {
+        // Use TEST IDs first to verify plugin works
+       // const TEST_BANNER_ID = 'ca-app-pub-3940256099942544/6300978111';
+        const PROD_BANNER_ID = 'ca-app-pub-5188642994982403/7847467013';
+        
+        // Check if admob is available
+        if (typeof admob === 'undefined') {
+            throw new Error('AdMob plugin not available');
+        }
+
+        logAdStatus('Creating banner ad', { testId: TEST_BANNER_ID });
+
+        admobBanner = new admob.BannerAd({
+            adUnitId: TEST_BANNER_ID,  // Using test ID for debugging
+            position: 'bottom',
+            adaptive: true
+        });
+
+        // Event listeners
+        admobBanner.on('load', () => {
+            logAdStatus('✅ Banner loaded successfully');
+            bannerRetryCount = 0;
+            showBanner();
+        });
+
+        admobBanner.on('loadfail', (error) => {
+            logAdStatus('❌ Banner load failed', error);
+            
+            if (bannerRetryCount < MAX_RETRIES) {
+                bannerRetryCount++;
+                const delay = 30000 * bannerRetryCount;
+                logAdStatus(`Retrying banner in ${delay/1000}s (attempt ${bannerRetryCount}/${MAX_RETRIES})`);
+                setTimeout(() => createBannerAd(), delay);
+            } else {
+                logAdStatus('Max banner retries reached');
+                showToast('Banner ads unavailable');
+            }
+        });
+
+        admobBanner.on('show', () => logAdStatus('Banner displayed'));
+        admobBanner.on('hide', () => logAdStatus('Banner hidden'));
+        
+        // Load the banner
+        await admobBanner.load();
+        logAdStatus('Banner load initiated');
+        
+    } catch (error) {
+        logAdStatus('❌ Banner initialization error', error);
+        showToast(`Banner error: ${error.message}`);
+        
+        // Retry initialization after delay
+        if (bannerRetryCount < MAX_RETRIES) {
+            bannerRetryCount++;
+            setTimeout(() => createBannerAd(), 30000);
+        }
+    }
+}
+
+// 3. Initialize Interstitial with Better Error Handling
+async function initInterstitial() {
+    try {
+        // Test IDs
+      //  const TEST_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
+         const PROD_INTERSTITIAL_ID = 'ca-app-pub-5188642994982403/1811807909';
+        
+        if (typeof admob === 'undefined') {
+            throw new Error('AdMob plugin not available');
+        }
+
+        logAdStatus('Creating interstitial ad', { testId: TEST_INTERSTITIAL_ID });
+
         admobInterstitial = new admob.InterstitialAd({
-            adUnitId: interId,
+            adUnitId: TEST_INTERSTITIAL_ID,  // Using test ID
         });
 
         admobInterstitial.on('load', () => {
+            logAdStatus('✅ Interstitial loaded successfully');
             isAdReadyy = true;
+            interRetryCount = 0;
             updateButtonVisibility();
-            console.log('Interstitial loaded');
         });
 
-        admobInterstitial.on('loadfail', (err) => {
-            console.error('Interstitial load failed', err);
-            alert('Interstitial loadfail');
+        admobInterstitial.on('loadfail', (error) => {
+            logAdStatus('❌ Interstitial load failed', error);
             isAdReadyy = false;
             updateButtonVisibility();
-            // Retry after cooldown
-            setTimeout(() => {
-                if (Date.now() - getPrevTimee() >= COOLDOWN_MSs) {
-                    admobInterstitial.load();
-                }
-            }, COOLDOWN_MSs);
+            
+            if (interRetryCount < MAX_RETRIES) {
+                interRetryCount++;
+                setTimeout(() => {
+                    if (Date.now() - getPrevTimee() >= COOLDOWN_MSs) {
+                        admobInterstitial.load();
+                    }
+                }, COOLDOWN_MSs);
+            }
         });
 
+        admobInterstitial.on('show', () => logAdStatus('Interstitial shown'));
         admobInterstitial.on('dismiss', () => {
+            logAdStatus('Interstitial dismissed');
             isAdReadyy = false;
             updateButtonVisibility();
-            // Load next ad after cooldown
+            
             setTimeout(() => {
                 if (Date.now() - getPrevTimee() >= COOLDOWN_MSs) {
                     admobInterstitial.load();
@@ -642,97 +670,109 @@ async function initInterstitial() {
             }, COOLDOWN_MSs);
         });
 
-        // Initial Load
+        // Initial load
         if (Date.now() - getPrevTimee() >= COOLDOWN_MSs) {
             await admobInterstitial.load();
+            logAdStatus('Interstitial load initiated');
         }
-    } catch (e) {
-        console.error("Interstitial initialization error", e);
+        
+    } catch (error) {
+        logAdStatus('❌ Interstitial initialization error', error);
+        showToast(`Interstitial error: ${error.message}`);
     }
 }
 
 function updateButtonVisibility() {
     const canShow = (Date.now() - getPrevTimee() >= COOLDOWN_MSs) && isAdReadyy;
     btnn.style.display = canShow ? 'flex' : 'none';
+    if (canShow) {
+        logAdStatus('Interstitial button visible');
+    }
 }
 
-// 5. Main Initialization
+// 4. Main initialization with platform check
 document.addEventListener('deviceready', async () => {
+    logAdStatus('Device ready event fired');
+    
+    // Check platform
+    logAdStatus('Platform info', {
+        cordova: window.cordova,
+        admob: typeof admob,
+        device: window.device
+    });
+    
+    // Verify plugin
     if (typeof admob === 'undefined') {
-        console.error("AdMob Plus plugin missing!");
-        showToast("Ad plugin not available");
+        const errorMsg = 'AdMob Plus plugin not found! Run: cordova plugin add cordova-plugin-admob-plus';
+        logAdStatus('❌ ' + errorMsg);
+        showToast(errorMsg);
         return;
     }
 
-    console.log("Device ready, initializing ads...");
+    // Check if we're on a real device
+    if (window.location.protocol === 'file:' || window.cordova) {
+        logAdStatus('Running on device, initializing ads...');
+        
+        // Initialize with delay to ensure everything is ready
+        setTimeout(async () => {
+            await createBannerAd();
+            await initInterstitial();
+        }, 2000);
+    } else {
+        logAdStatus('Running in browser - ads will not work. Test on real device.');
+        showToast('Test on real device for ads');
+    }
     
-    // Initialize banner first
-    await createBannerAd();
-    
-    // Then interstitial
-    await initInterstitial();
-    
-    // Check button status every few seconds
+    // Periodic status check
     setInterval(updateButtonVisibility, 5000);
-    
-    // Show initial banner after a short delay (helps with UI rendering)
-    setTimeout(() => {
-        if (admobBanner) {
-            showBanner();
-        }
-    }, 1000);
     
 }, false);
 
-// 6. Event Handlers
+// 5. Event Handlers
 btnn.addEventListener('click', async () => {
     if (isAdReadyy && admobInterstitial) {
         try {
             btnn.classList.add('is-loading');
             setPrevTimee();
+            logAdStatus('Showing interstitial');
             await admobInterstitial.show();
-            updateButtonVisibility();
-        } catch (e) {
-            console.error("Show failed", e);
-            showToast("Ad unavailable");
+        } catch (error) {
+            logAdStatus('Show failed', error);
+            showToast('Ad unavailable');
         } finally {
             btnn.classList.remove('is-loading');
+            updateButtonVisibility();
         }
     } else {
-        showToast("Ad not ready yet");
+        logAdStatus('Interstitial not ready');
+        showToast('Ad not ready yet');
     }
 });
 
-// Enhanced lifecycle management
+// Lifecycle management
 document.addEventListener('pause', () => {
-    console.log('App paused, hiding banner');
+    logAdStatus('App paused');
     hideBanner();
 }, false);
 
 document.addEventListener('resume', () => {
-    console.log('App resumed, showing banner');
-    if (admobBanner) {
-        // Check if we should show banner on resume
-        setTimeout(() => {
-            showBanner();
-        }, 500);
-    }
-}, false);
-
-// Handle visibility change
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        hideBanner();
-    } else {
+    logAdStatus('App resumed');
+    setTimeout(() => {
         if (admobBanner) {
             showBanner();
         }
-    }
-});
+    }, 1000);
+}, false);
 
-// Clean up on page unload
-window.addEventListener('beforeunload', () => {
-    if (admobBanner) {
-        admobBanner.hide();
+// Manual test function (call from console)
+window.testAdMob = function() {
+    logAdStatus('Manual test initiated');
+    if (typeof admob === 'undefined') {
+        logAdStatus('❌ AdMob plugin missing');
+        return;
     }
-});
+    logAdStatus('✅ AdMob plugin found', {
+        version: admob.VERSION,
+        platforms: admob.Platform
+    });
+};
