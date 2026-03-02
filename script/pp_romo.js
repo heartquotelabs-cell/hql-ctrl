@@ -405,7 +405,7 @@ if (document.readyState === 'loading') {
 
 
 
- // ============================================
+// ============================================
 // BANNER AD - Create once, reuse forever
 // ============================================
 let banner;
@@ -463,7 +463,7 @@ function isAppOpenAdFresh() {
 }
 
 async function loadAppOpenAd() {
-    // Don't load if one is already loaded and still fresh
+    // Don't load if already loaded, fresh and ready
     if (appOpenAd && isAppOpenAdFresh()) return;
 
     try {
@@ -472,13 +472,15 @@ async function loadAppOpenAd() {
         });
 
         await appOpenAd.load();
-        appOpenLoadTime = Date.now();
-        appOpenReady = true;
+        appOpenLoadTime          = Date.now();
+        appOpenReady             = true;
+        window.admobAppOpenReady = true; // persists across pages
         console.log("App Open Ad loaded");
     } catch(e) {
         console.error("App Open Ad load failed:", e);
-        appOpenAd   = null;
-        appOpenReady = false;
+        appOpenAd                = null;
+        appOpenReady             = false;
+        window.admobAppOpenReady = false;
     }
 }
 
@@ -487,10 +489,10 @@ async function showAppOpenAd() {
     // 1. Don't show if already showing
     // 2. Don't show if not loaded
     // 3. Don't show if ad is expired (> 4 hours)
-    if (appOpenIsShowing)       return;
-    if (!appOpenAd)             return;
-    if (!appOpenReady)          return;
-    if (!isAppOpenAdFresh())    return;
+    if (appOpenIsShowing)    return;
+    if (!appOpenAd)          return;
+    if (!appOpenReady)       return;
+    if (!isAppOpenAdFresh()) return;
 
     try {
         appOpenIsShowing = true;
@@ -501,23 +503,25 @@ async function showAppOpenAd() {
         }
 
         appOpenAd.on('dismiss', async () => {
-            appOpenIsShowing = false;
-            appOpenAd        = null;
-            appOpenReady     = false;
+            appOpenIsShowing         = false;
+            appOpenAd                = null;
+            appOpenReady             = false;
+            window.admobAppOpenReady = false;
 
             // Restore banner after app open ad is dismissed
             if (window.admobBanner) {
                 await window.admobBanner.show();
             }
 
-            // Pre-load next app open ad for next time
+            // Pre-load next app open ad for next resume
             await loadAppOpenAd();
         });
 
         appOpenAd.on('error', async () => {
-            appOpenIsShowing = false;
-            appOpenAd        = null;
-            appOpenReady     = false;
+            appOpenIsShowing         = false;
+            appOpenAd                = null;
+            appOpenReady             = false;
+            window.admobAppOpenReady = false;
 
             if (window.admobBanner) {
                 await window.admobBanner.show();
@@ -538,12 +542,14 @@ async function showAppOpenAd() {
     }
 }
 
-// Load on app start
+// Load app open ad ONCE on app start — window flag prevents spam on navigation
 document.addEventListener('deviceready', async () => {
-    await loadAppOpenAd();
+    if (!window.admobAppOpenReady) {
+        await loadAppOpenAd();
+    }
 }, false);
 
-// Show on app resume (user comes back from another app)
+// Show on resume — user comes back from another app or lockscreen
 document.addEventListener('resume', async () => {
     await showAppOpenAd();
 }, false);
