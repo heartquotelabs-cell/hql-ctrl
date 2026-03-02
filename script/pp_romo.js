@@ -405,8 +405,8 @@ if (document.readyState === 'loading') {
 
 
 
-/**
- * COMPLETE ADMOB INTEGRATION WITH DEBUGGING
+ /**
+ * COMPLETE ADMOB INTEGRATION WITH PRODUCTION IDs
  */
 
 // Global variables
@@ -558,11 +558,10 @@ function hideBanner() {
     }
 }
 
-// 2. Initialize Banner with Better Error Handling
+// 2. Initialize Banner with Production ID
 async function createBannerAd() {
     try {
-        // Use TEST IDs first to verify plugin works
-       // const TEST_BANNER_ID = 'ca-app-pub-3940256099942544/6300978111';
+        // Production Banner ID
         const PROD_BANNER_ID = 'ca-app-pub-5188642994982403/7847467013';
         
         // Check if admob is available
@@ -570,10 +569,10 @@ async function createBannerAd() {
             throw new Error('AdMob plugin not available');
         }
 
-        logAdStatus('Creating banner ad', { testId: TEST_BANNER_ID });
+        logAdStatus('Creating banner ad', { adUnitId: PROD_BANNER_ID });
 
         admobBanner = new admob.BannerAd({
-            adUnitId: TEST_BANNER_ID,  // Using test ID for debugging
+            adUnitId: PROD_BANNER_ID,
             position: 'bottom',
             adaptive: true
         });
@@ -618,21 +617,20 @@ async function createBannerAd() {
     }
 }
 
-// 3. Initialize Interstitial with Better Error Handling
+// 3. Initialize Interstitial with Production ID
 async function initInterstitial() {
     try {
-        // Test IDs
-      //  const TEST_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
-         const PROD_INTERSTITIAL_ID = 'ca-app-pub-5188642994982403/1811807909';
+        // Production Interstitial ID
+        const PROD_INTERSTITIAL_ID = 'ca-app-pub-5188642994982403/1811807909';
         
         if (typeof admob === 'undefined') {
             throw new Error('AdMob plugin not available');
         }
 
-        logAdStatus('Creating interstitial ad', { testId: TEST_INTERSTITIAL_ID });
+        logAdStatus('Creating interstitial ad', { adUnitId: PROD_INTERSTITIAL_ID });
 
         admobInterstitial = new admob.InterstitialAd({
-            adUnitId: TEST_INTERSTITIAL_ID,  // Using test ID
+            adUnitId: PROD_INTERSTITIAL_ID,
         });
 
         admobInterstitial.on('load', () => {
