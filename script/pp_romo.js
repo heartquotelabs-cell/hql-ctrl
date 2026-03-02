@@ -412,9 +412,14 @@ document.addEventListener('deviceready', async () => {
     try {
         await admob.start();
 
-        // This is your REAL safety net — kills any banner 
-        // left behind by the previous page
-        await admob.BannerAd.destroyAll();
+        // window.admobAds persists across pages — hide any surviving banner
+        const allAds = window.admobAds || {};
+        for (const id in allAds) {
+            try {
+                await allAds[id].hide();
+            } catch(e) {}
+            delete allAds[id];
+        }
 
         banner = new admob.BannerAd({
             adUnitId: 'ca-app-pub-3940256099942544/6300978111',
@@ -432,11 +437,10 @@ document.addEventListener('deviceready', async () => {
     }
 }, false);
 
-// Synchronous exit cleanup — no async, no await
 window.addEventListener('pagehide', () => {
     try {
-        // admob-cordova plugin exposes a synchronous 
-        // native bridge call for this exact reason
-        admob.BannerAd.destroyAll();  // No await — fire and forget
+        if (banner) {
+            banner.hide();
+        }
     } catch(e) {}
 });
