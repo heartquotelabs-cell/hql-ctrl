@@ -406,7 +406,7 @@ if (document.readyState === 'loading') {
 
 
  
-
+let banner;
 
 document.addEventListener('deviceready', async () => {
     try {
