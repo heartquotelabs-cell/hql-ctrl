@@ -412,6 +412,7 @@ if (document.readyState === 'loading') {
 
 // The ONLY code you need - nothing else
 document.addEventListener('deviceready', function() {
+admob.start();
     // Banner
     const banner = new admob.BannerAd({
         adUnitId: 'ca-app-pub-5188642994982403/7847467013',
@@ -419,10 +420,4 @@ document.addEventListener('deviceready', function() {
     });
     banner.load();
     banner.on('load', () => banner.show());
-
-    // Interstitial  
-    const interstitial = new admob.InterstitialAd({
-        adUnitId: 'ca-app-pub-5188642994982403/1811807909'
-    });
-    interstitial.load();
 }, false);
