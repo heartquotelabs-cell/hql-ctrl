@@ -405,13 +405,15 @@ if (document.readyState === 'loading') {
 
 
 
- let banner;
+ // ============================================
+// BANNER AD - Create once, reuse forever
+// ============================================
+let banner;
 
 document.addEventListener('deviceready', async () => {
     try {
         await admob.start();
 
-        // Only create the banner ONCE if it doesn't already exist
         if (!window.admobBanner) {
             window.admobBanner = new admob.BannerAd({
                 adUnitId: 'ca-app-pub-3940256099942544/6300978111',
@@ -424,21 +426,124 @@ document.addEventListener('deviceready', async () => {
 
             await window.admobBanner.load();
         } else {
-            // Banner already exists — just show it
             await window.admobBanner.show();
         }
 
         banner = window.admobBanner;
 
     } catch(e) {
-        console.error("AdMob Error:", e);
+        console.error("Banner Error:", e);
     }
 }, false);
 
 window.addEventListener('pagehide', () => {
     try {
         if (window.admobBanner) {
-            window.admobBanner.hide(); // Just hide, don't destroy
+            window.admobBanner.hide();
         }
     } catch(e) {}
 });
+
+
+// ============================================
+// APP OPEN AD - Policy Compliant
+// ============================================
+
+const APP_OPEN_AD_UNIT = 'ca-app-pub-3940256099942544/9257395921';
+const APP_OPEN_EXPIRY_MS = 4 * 60 * 60 * 1000; // 4 hours — AdMob policy max
+
+let appOpenAd        = null;
+let appOpenLoadTime  = null;
+let appOpenIsShowing = false;
+let appOpenReady     = false;
+
+function isAppOpenAdFresh() {
+    if (!appOpenLoadTime) return false;
+    return (Date.now() - appOpenLoadTime) < APP_OPEN_EXPIRY_MS;
+}
+
+async function loadAppOpenAd() {
+    // Don't load if one is already loaded and still fresh
+    if (appOpenAd && isAppOpenAdFresh()) return;
+
+    try {
+        appOpenAd = new admob.AppOpenAd({
+            adUnitId: APP_OPEN_AD_UNIT,
+        });
+
+        await appOpenAd.load();
+        appOpenLoadTime = Date.now();
+        appOpenReady = true;
+        console.log("App Open Ad loaded");
+    } catch(e) {
+        console.error("App Open Ad load failed:", e);
+        appOpenAd   = null;
+        appOpenReady = false;
+    }
+}
+
+async function showAppOpenAd() {
+    // Policy rules:
+    // 1. Don't show if already showing
+    // 2. Don't show if not loaded
+    // 3. Don't show if ad is expired (> 4 hours)
+    if (appOpenIsShowing)       return;
+    if (!appOpenAd)             return;
+    if (!appOpenReady)          return;
+    if (!isAppOpenAdFresh())    return;
+
+    try {
+        appOpenIsShowing = true;
+
+        // Hide banner while app open ad is showing — policy requirement
+        if (window.admobBanner) {
+            await window.admobBanner.hide();
+        }
+
+        appOpenAd.on('dismiss', async () => {
+            appOpenIsShowing = false;
+            appOpenAd        = null;
+            appOpenReady     = false;
+
+            // Restore banner after app open ad is dismissed
+            if (window.admobBanner) {
+                await window.admobBanner.show();
+            }
+
+            // Pre-load next app open ad for next time
+            await loadAppOpenAd();
+        });
+
+        appOpenAd.on('error', async () => {
+            appOpenIsShowing = false;
+            appOpenAd        = null;
+            appOpenReady     = false;
+
+            if (window.admobBanner) {
+                await window.admobBanner.show();
+            }
+
+            await loadAppOpenAd();
+        });
+
+        await appOpenAd.show();
+
+    } catch(e) {
+        console.error("App Open Ad show failed:", e);
+        appOpenIsShowing = false;
+
+        if (window.admobBanner) {
+            await window.admobBanner.show();
+        }
+    }
+}
+
+// Load on app start
+document.addEventListener('deviceready', async () => {
+    await loadAppOpenAd();
+}, false);
+
+// Show on app resume (user comes back from another app)
+document.addEventListener('resume', async () => {
+    await showAppOpenAd();
+}, false);
