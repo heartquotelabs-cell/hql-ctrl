@@ -405,6 +405,87 @@ if (document.readyState === 'loading') {
 
 
 
+
+// ============================================
+// CONFIGURATION
+// ============================================
+const ADMOB_CONFIG = {
+    testDevices  : ['f5af6f48-23f7-412f-af01-4ee218d6893a'],
+    banner       : 'ca-app-pub-3940256099942544/6300978111',
+    appOpen      : 'ca-app-pub-3940256099942544/9257395921',
+    interstitial : 'ca-app-pub-3940256099942544/1033173712',
+};
+
+const APP_OPEN_EXPIRY_MS       = 4 * 60 * 60 * 1000; // 4 hours
+const INTERSTITIAL_COOLDOWN_MS = 60 * 1000;           // 1 minute cooldown
+
+
+// ============================================
+// CREATE WATCH AD BUTTON VIA JAVASCRIPT
+// ============================================
+function createWatchAdButton() {
+    // Don't create duplicate buttons
+    if (document.getElementById('watchAdBtn')) return;
+
+    // Button
+    const btn       = document.createElement('button');
+    btn.id          = 'watchAdBtn';
+    btn.title       = 'Watch Ad';
+
+    Object.assign(btn.style, {
+        display        : 'none',
+        position       : 'fixed',
+        top            : '15px',
+        right          : '15px',
+        zIndex         : '9999',
+        background     : '#FF6600',
+        border         : 'none',
+        borderRadius   : '50%',
+        width          : '45px',
+        height         : '45px',
+        cursor         : 'pointer',
+        boxShadow      : '0 2px 6px rgba(0,0,0,0.4)',
+        display        : 'none',
+        alignItems     : 'center',
+        justifyContent : 'center',
+        padding        : '0',
+        outline        : 'none',
+    });
+
+    // Icon
+    const icon     = document.createElement('i');
+    icon.className = 'fas fa-video';
+
+    Object.assign(icon.style, {
+        color    : 'white',
+        fontSize : '18px',
+        pointerEvents : 'none',
+    });
+
+    btn.appendChild(icon);
+    document.body.appendChild(btn);
+
+    // Click handler
+    btn.addEventListener('click', async () => {
+        await showInterstitialAd();
+    });
+}
+
+function showWatchAdButton() {
+    const btn = document.getElementById('watchAdBtn');
+    if (btn) {
+        btn.style.display        = 'flex';
+        btn.style.alignItems     = 'center';
+        btn.style.justifyContent = 'center';
+    }
+}
+
+function hideWatchAdButton() {
+    const btn = document.getElementById('watchAdBtn');
+    if (btn) btn.style.display = 'none';
+}
+
+
 // ============================================
 // BANNER AD - Create once, reuse forever
 // ============================================
@@ -412,12 +493,17 @@ let banner;
 
 document.addEventListener('deviceready', async () => {
     try {
+        // Configure test device BEFORE start — always first
+        await admob.configure({
+            testDevices: ADMOB_CONFIG.testDevices,
+        });
+
         await admob.start();
 
         if (!window.admobBanner) {
             window.admobBanner = new admob.BannerAd({
-                adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-                position: 'bottom',
+                adUnitId : ADMOB_CONFIG.banner,
+                position : 'bottom',
             });
 
             window.admobBanner.on('load', async () => {
@@ -448,10 +534,6 @@ window.addEventListener('pagehide', () => {
 // ============================================
 // APP OPEN AD - Policy Compliant
 // ============================================
-
-const APP_OPEN_AD_UNIT = 'ca-app-pub-3940256099942544/9257395921';
-const APP_OPEN_EXPIRY_MS = 4 * 60 * 60 * 1000; // 4 hours — AdMob policy max
-
 let appOpenAd        = null;
 let appOpenLoadTime  = null;
 let appOpenIsShowing = false;
@@ -463,18 +545,17 @@ function isAppOpenAdFresh() {
 }
 
 async function loadAppOpenAd() {
-    // Don't load if already loaded, fresh and ready
     if (appOpenAd && isAppOpenAdFresh()) return;
 
     try {
         appOpenAd = new admob.AppOpenAd({
-            adUnitId: APP_OPEN_AD_UNIT,
+            adUnitId: ADMOB_CONFIG.appOpen,
         });
 
         await appOpenAd.load();
         appOpenLoadTime          = Date.now();
         appOpenReady             = true;
-        window.admobAppOpenReady = true; // persists across pages
+        window.admobAppOpenReady = true;
         console.log("App Open Ad loaded");
     } catch(e) {
         console.error("App Open Ad load failed:", e);
@@ -485,10 +566,6 @@ async function loadAppOpenAd() {
 }
 
 async function showAppOpenAd() {
-    // Policy rules:
-    // 1. Don't show if already showing
-    // 2. Don't show if not loaded
-    // 3. Don't show if ad is expired (> 4 hours)
     if (appOpenIsShowing)    return;
     if (!appOpenAd)          return;
     if (!appOpenReady)       return;
@@ -497,10 +574,7 @@ async function showAppOpenAd() {
     try {
         appOpenIsShowing = true;
 
-        // Hide banner while app open ad is showing — policy requirement
-        if (window.admobBanner) {
-            await window.admobBanner.hide();
-        }
+        if (window.admobBanner) await window.admobBanner.hide();
 
         appOpenAd.on('dismiss', async () => {
             appOpenIsShowing         = false;
@@ -508,12 +582,7 @@ async function showAppOpenAd() {
             appOpenReady             = false;
             window.admobAppOpenReady = false;
 
-            // Restore banner after app open ad is dismissed
-            if (window.admobBanner) {
-                await window.admobBanner.show();
-            }
-
-            // Pre-load next app open ad for next resume
+            if (window.admobBanner) await window.admobBanner.show();
             await loadAppOpenAd();
         });
 
@@ -523,10 +592,7 @@ async function showAppOpenAd() {
             appOpenReady             = false;
             window.admobAppOpenReady = false;
 
-            if (window.admobBanner) {
-                await window.admobBanner.show();
-            }
-
+            if (window.admobBanner) await window.admobBanner.show();
             await loadAppOpenAd();
         });
 
@@ -535,21 +601,110 @@ async function showAppOpenAd() {
     } catch(e) {
         console.error("App Open Ad show failed:", e);
         appOpenIsShowing = false;
-
-        if (window.admobBanner) {
-            await window.admobBanner.show();
-        }
+        if (window.admobBanner) await window.admobBanner.show();
     }
 }
 
-// Load app open ad ONCE on app start — window flag prevents spam on navigation
 document.addEventListener('deviceready', async () => {
     if (!window.admobAppOpenReady) {
         await loadAppOpenAd();
     }
 }, false);
 
-// Show on resume — user comes back from another app or lockscreen
 document.addEventListener('resume', async () => {
     await showAppOpenAd();
+}, false);
+
+
+// ============================================
+// INTERSTITIAL AD - Persistent + Button Controlled
+// ============================================
+let interstitialAd        = null;
+let interstitialReady     = false;
+let interstitialLastShown = 0;
+let interstitialShowing   = false;
+
+async function loadInterstitialAd() {
+    if (interstitialReady && window.admobInterstitialReady) return;
+
+    try {
+        interstitialAd = new admob.InterstitialAd({
+            adUnitId: ADMOB_CONFIG.interstitial,
+        });
+
+        await interstitialAd.load();
+        interstitialReady             = true;
+        window.admobInterstitialReady = true;
+
+        // Ad ready — show the button
+        showWatchAdButton();
+        console.log("Interstitial Ad loaded");
+
+    } catch(e) {
+        console.error("Interstitial load failed:", e);
+        interstitialAd                = null;
+        interstitialReady             = false;
+        window.admobInterstitialReady = false;
+        hideWatchAdButton();
+    }
+}
+
+async function showInterstitialAd() {
+    if (interstitialShowing)                                             return;
+    if (!interstitialAd)                                                 return;
+    if (!interstitialReady)                                              return;
+    if ((Date.now() - interstitialLastShown) < INTERSTITIAL_COOLDOWN_MS) return;
+
+    try {
+        interstitialShowing = true;
+
+        // Hide button and banner while showing
+        hideWatchAdButton();
+        if (window.admobBanner) await window.admobBanner.hide();
+
+        interstitialAd.on('dismiss', async () => {
+            interstitialShowing           = false;
+            interstitialReady             = false;
+            interstitialAd                = null;
+            interstitialLastShown         = Date.now();
+            window.admobInterstitialReady = false;
+
+            if (window.admobBanner) await window.admobBanner.show();
+
+            // Pre-load next interstitial silently
+            await loadInterstitialAd();
+        });
+
+        interstitialAd.on('error', async () => {
+            interstitialShowing           = false;
+            interstitialReady             = false;
+            interstitialAd                = null;
+            window.admobInterstitialReady = false;
+
+            if (window.admobBanner) await window.admobBanner.show();
+            hideWatchAdButton();
+            await loadInterstitialAd();
+        });
+
+        await interstitialAd.show();
+
+    } catch(e) {
+        console.error("Interstitial show failed:", e);
+        interstitialShowing = false;
+        if (window.admobBanner) await window.admobBanner.show();
+    }
+}
+
+// Initialize everything on deviceready
+document.addEventListener('deviceready', async () => {
+    // Step 1 — Create the button
+    createWatchAdButton();
+
+    // Step 2 — Load interstitial if not already loaded
+    if (!window.admobInterstitialReady) {
+        await loadInterstitialAd();
+    } else {
+        // Already loaded from previous page — just show button
+        showWatchAdButton();
+    }
 }, false);
