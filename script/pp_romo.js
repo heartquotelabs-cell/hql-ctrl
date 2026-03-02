@@ -411,31 +411,45 @@ if (document.readyState === 'loading') {
 
 let banner;
 
+// 1. THE CLEANUP (As you leave the page)
+window.addEventListener('beforeunload', async () => {
+    if (banner) {
+        // Use try/catch because the page might close 
+        // faster than the destroy command finishes
+        try {
+            await banner.destroy();
+            console.log("Banner destroyed before page change");
+        } catch (e) {
+            console.error(e);
+        }
+    }
+});
+
+// 2. THE INITIALIZATION (As you enter the page)
 document.addEventListener('deviceready', async () => {
-  try {
-    await admob.start();
+    try {
+        await admob.start();
 
-    // 1. Create the banner with a STATIC ID
-    // This tells the plugin: "This is THE banner for my app."
-    banner = new admob.BannerAd({
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111', 
-      position: 'bottom',
-      id: 'my-main-banner' // <--- ADD THIS LINE
-    });
+        // Safety check: Kill any orphans that survived the transition
+        if (admob.BannerAd.destroyAll) {
+            await admob.BannerAd.destroyAll();
+        }
 
-    // 2. The 'load' event only needs to trigger 'show' once
-    banner.on('load', async () => {
-      await banner.show();
-    });
+        banner = new admob.BannerAd({
+            adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+            position: 'bottom',
+        });
 
-    // 3. Load it
-    // If the banner 'my-main-banner' already exists from the previous page,
-    // the plugin will simply update it instead of making a duplicate.
-    await banner.load();
+        banner.on('load', async () => {
+            await banner.show();
+        });
 
-  } catch (e) {
-    console.error("AdMob Error:", e);
-  }
+        await banner.load();
+
+    } catch (e) {
+        console.error("AdMob Error:", e);
+    }
 }, false);
+
 
 
