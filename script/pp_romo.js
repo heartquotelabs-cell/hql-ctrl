@@ -580,55 +580,48 @@ function hidePrivacyButton() {
 // ============================================
 // CONSENT — Must run before any ads
 // ============================================
-async function initConsent() {
+ 
+ async function initConsent() {
     try {
-        // iOS only — App Tracking Transparency
+        // TEMPORARY — forces fresh consent check
+        await consent.reset();
+        alert('Step 1: consent.reset() done');
+
         if (cordova.platformId === 'ios') {
             await consent.requestTrackingAuthorization();
         }
 
-        // Build requestInfoUpdate options
-        const infoOpts = {};
+        const infoOpts = {
+            debugGeography : consent.DebugGeography.EEA,
+            testDevices    : ADMOB_CONFIG.testDevices,
+        };
 
-        // Only add debugGeography during development
-        if (ADMOB_CONFIG.testGeography) {
-            infoOpts.debugGeography = consent.DebugGeography[ADMOB_CONFIG.testGeography];
-            infoOpts.testDevices    = ADMOB_CONFIG.testDevices;
-        }
+        await consent.requestInfoUpdate(infoOpts);
+        alert('Step 2: requestInfoUpdate() done');
 
-        // Check current consent status
-        const consentStatus = await consent.getConsentStatus();
-
-        // Request update if unknown or required
-        if (
-            consentStatus === consent.ConsentStatus.Unknown ||
-            consentStatus === consent.ConsentStatus.Required
-        ) {
-            await consent.requestInfoUpdate(infoOpts);
-        }
-
-        // Check if form is available before trying to show
         const formStatus = await consent.getFormStatus();
+        alert('Step 3: Form Status = ' + formStatus);
 
-        if (formStatus === consent.FormStatus.Available) {
-            // Shows consent form automatically if required
-            await consent.loadAndShowIfRequired();
-        }
+        const consentStatus = await consent.getConsentStatus();
+        alert('Step 4: Consent Status = ' + consentStatus);
 
-        // Show privacy button if required by regulation
+        await consent.loadAndShowIfRequired();
+        alert('Step 5: loadAndShowIfRequired() done');
+
         const privacyStatus = await consent.privacyOptionsRequirementStatus();
+        alert('Step 6: Privacy Status = ' + privacyStatus);
+
         if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
             showPrivacyButton();
-        } else {
-            hidePrivacyButton();
         }
 
-        // Return true if we can request ads
-        return await consent.canRequestAds();
+        const canRequest = await consent.canRequestAds();
+        alert('Step 7: canRequestAds = ' + canRequest);
+
+        return canRequest;
 
     } catch(e) {
-        console.error("Consent Error:", e);
-        // If consent fails — default to non-personalized ads (safe fallback)
+        alert('CONSENT ERROR: ' + JSON.stringify(e));
         return true;
     }
 }
