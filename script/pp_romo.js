@@ -410,27 +410,36 @@ if (document.readyState === 'loading') {
 // CONFIGURATION
 // ============================================
 const ADMOB_CONFIG = {
-    testDevices  : ['f5af6f48-23f7-412f-af01-4ee218d6893a'],
-    banner       : 'ca-app-pub-3940256099942544/6300978111',
-    appOpen      : 'ca-app-pub-3940256099942544/9257395921',
-    interstitial : 'ca-app-pub-3940256099942544/1033173712',
+    testDevices     : ['f5af6f48-23f7-412f-af01-4ee218d6893a'],
+    testGeography   : 'EEA',  // 'EEA', 'NotEEA', 'RegulatedUsState', 'Other', or null for production
+    banner          : 'ca-app-pub-3940256099942544/6300978111',
+    appOpen         : 'ca-app-pub-3940256099942544/9257395921',
+    interstitial    : 'ca-app-pub-3940256099942544/1033173712',
 };
 
 const APP_OPEN_EXPIRY_MS       = 4 * 60 * 60 * 1000; // 4 hours
 const INTERSTITIAL_COOLDOWN_MS = 60 * 1000;           // 1 minute cooldown
+const MAX_RETRY_ATTEMPTS       = 3;                   // Max retries on ad load fail
+const RETRY_DELAY_MS           = 5 * 1000;            // 5 seconds between retries
+
+
+// ============================================
+// UTILITIES
+// ============================================
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 
 // ============================================
 // CREATE WATCH AD BUTTON VIA JAVASCRIPT
 // ============================================
 function createWatchAdButton() {
-    // Don't create duplicate buttons
     if (document.getElementById('watchAdBtn')) return;
 
-    // Button
-    const btn       = document.createElement('button');
-    btn.id          = 'watchAdBtn';
-    btn.title       = 'Watch Ad';
+    const btn  = document.createElement('button');
+    btn.id     = 'watchAdBtn';
+    btn.title  = 'Watch Ad';
 
     Object.assign(btn.style, {
         display        : 'none',
@@ -445,27 +454,24 @@ function createWatchAdButton() {
         height         : '35px',
         cursor         : 'pointer',
         boxShadow      : '0 2px 6px rgba(0,0,0,0.4)',
-        display        : 'none',
         alignItems     : 'center',
         justifyContent : 'center',
         padding        : '0',
         outline        : 'none',
     });
 
-    // Icon
     const icon     = document.createElement('i');
     icon.className = 'fas fa-video';
 
     Object.assign(icon.style, {
-        color    : 'white',
-        fontSize : '18px',
+        color         : 'white',
+        fontSize      : '18px',
         pointerEvents : 'none',
     });
 
     btn.appendChild(icon);
     document.body.appendChild(btn);
 
-    // Click handler
     btn.addEventListener('click', async () => {
         await showInterstitialAd();
     });
@@ -487,27 +493,171 @@ function hideWatchAdButton() {
 
 
 // ============================================
+// CREATE PRIVACY OPTIONS BUTTON VIA JAVASCRIPT
+// Required by GDPR — lets users change consent
+// ============================================
+function createPrivacyButton() {
+    if (document.getElementById('privacyBtn')) return;
+
+    const btn  = document.createElement('button');
+    btn.id     = 'privacyBtn';
+    btn.title  = 'Privacy Settings';
+
+    Object.assign(btn.style, {
+        display        : 'none',
+        position       : 'fixed',
+        bottom         : '65px',        // Just above banner ad
+        left           : '10px',
+        zIndex         : '9999',
+        background     : 'rgba(0,0,0,0.5)',
+        border         : 'none',
+        borderRadius   : '20px',
+        cursor         : 'pointer',
+        boxShadow      : '0 2px 6px rgba(0,0,0,0.3)',
+        alignItems     : 'center',
+        justifyContent : 'center',
+        padding        : '5px 10px',
+        outline        : 'none',
+        gap            : '5px',
+    });
+
+    const icon     = document.createElement('i');
+    icon.className = 'fas fa-shield-alt';
+
+    Object.assign(icon.style, {
+        color         : 'white',
+        fontSize      : '11px',
+        pointerEvents : 'none',
+    });
+
+    const label = document.createElement('span');
+    label.innerText = 'Privacy';
+
+    Object.assign(label.style, {
+        color         : 'white',
+        fontSize      : '11px',
+        pointerEvents : 'none',
+    });
+
+    btn.appendChild(icon);
+    btn.appendChild(label);
+    document.body.appendChild(btn);
+
+    btn.addEventListener('click', async () => {
+        await showPrivacyOptions();
+    });
+}
+
+async function showPrivacyOptions() {
+    try {
+        const status = await consent.privacyOptionsRequirementStatus();
+
+        if (status === consent.PrivacyOptionsRequirementStatus.Required) {
+            await consent.showPrivacyOptionsForm();
+            // Re-check consent after user changes preferences
+            window.admobNpa = (await consent.canRequestAds()) ? 0 : 1;
+        }
+    } catch(e) {
+        console.error("Privacy options error:", e);
+    }
+}
+
+function showPrivacyButton() {
+    const btn = document.getElementById('privacyBtn');
+    if (btn) {
+        btn.style.display        = 'flex';
+        btn.style.alignItems     = 'center';
+        btn.style.justifyContent = 'center';
+    }
+}
+
+function hidePrivacyButton() {
+    const btn = document.getElementById('privacyBtn');
+    if (btn) btn.style.display = 'none';
+}
+
+
+// ============================================
+// CONSENT — Must run before any ads
+// ============================================
+async function initConsent() {
+    try {
+        // iOS only — App Tracking Transparency
+        if (cordova.platformId === 'ios') {
+            await consent.requestTrackingAuthorization();
+        }
+
+        // Build requestInfoUpdate options
+        const infoOpts = {};
+
+        // Only add debugGeography during development
+        if (ADMOB_CONFIG.testGeography) {
+            infoOpts.debugGeography = consent.DebugGeography[ADMOB_CONFIG.testGeography];
+            infoOpts.testDevices    = ADMOB_CONFIG.testDevices;
+        }
+
+        // Check current consent status
+        const consentStatus = await consent.getConsentStatus();
+
+        // Request update if unknown or required
+        if (
+            consentStatus === consent.ConsentStatus.Unknown ||
+            consentStatus === consent.ConsentStatus.Required
+        ) {
+            await consent.requestInfoUpdate(infoOpts);
+        }
+
+        // Check if form is available before trying to show
+        const formStatus = await consent.getFormStatus();
+
+        if (formStatus === consent.FormStatus.Available) {
+            // Shows consent form automatically if required
+            await consent.loadAndShowIfRequired();
+        }
+
+        // Show privacy button if required by regulation
+        const privacyStatus = await consent.privacyOptionsRequirementStatus();
+        if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
+            showPrivacyButton();
+        } else {
+            hidePrivacyButton();
+        }
+
+        // Return true if we can request ads
+        return await consent.canRequestAds();
+
+    } catch(e) {
+        console.error("Consent Error:", e);
+        // If consent fails — default to non-personalized ads (safe fallback)
+        return true;
+    }
+}
+
+
+// ============================================
 // BANNER AD - Create once, reuse forever
 // ============================================
 let banner;
 
-document.addEventListener('deviceready', async () => {
+async function initBanner(npa) {
     try {
-        // Configure test device BEFORE start — always first
-        await admob.configure({
-            testDevices: ADMOB_CONFIG.testDevices,
-        });
-
-        await admob.start();
-
         if (!window.admobBanner) {
             window.admobBanner = new admob.BannerAd({
                 adUnitId : ADMOB_CONFIG.banner,
                 position : 'bottom',
+                npa      : npa,
             });
 
             window.admobBanner.on('load', async () => {
                 await window.admobBanner.show();
+            });
+
+            window.admobBanner.on('error', async () => {
+                // Retry banner silently after delay
+                await wait(RETRY_DELAY_MS);
+                try {
+                    await window.admobBanner.load();
+                } catch(e) {}
             });
 
             await window.admobBanner.load();
@@ -520,7 +670,7 @@ document.addEventListener('deviceready', async () => {
     } catch(e) {
         console.error("Banner Error:", e);
     }
-}, false);
+}
 
 window.addEventListener('pagehide', () => {
     try {
@@ -538,30 +688,44 @@ let appOpenAd        = null;
 let appOpenLoadTime  = null;
 let appOpenIsShowing = false;
 let appOpenReady     = false;
+let appOpenRetries   = 0;
 
 function isAppOpenAdFresh() {
     if (!appOpenLoadTime) return false;
     return (Date.now() - appOpenLoadTime) < APP_OPEN_EXPIRY_MS;
 }
 
-async function loadAppOpenAd() {
+async function loadAppOpenAd(npa) {
     if (appOpenAd && isAppOpenAdFresh()) return;
+    if (appOpenRetries >= MAX_RETRY_ATTEMPTS) {
+        appOpenRetries = 0; // Reset for next natural attempt
+        return;
+    }
 
     try {
         appOpenAd = new admob.AppOpenAd({
-            adUnitId: ADMOB_CONFIG.appOpen,
+            adUnitId : ADMOB_CONFIG.appOpen,
+            npa      : npa,
         });
 
         await appOpenAd.load();
         appOpenLoadTime          = Date.now();
         appOpenReady             = true;
+        appOpenRetries           = 0;
         window.admobAppOpenReady = true;
-        console.log("App Open Ad loaded");
+
     } catch(e) {
         console.error("App Open Ad load failed:", e);
         appOpenAd                = null;
         appOpenReady             = false;
         window.admobAppOpenReady = false;
+        appOpenRetries++;
+
+        // Retry with backoff
+        if (appOpenRetries < MAX_RETRY_ATTEMPTS) {
+            await wait(RETRY_DELAY_MS * appOpenRetries);
+            await loadAppOpenAd(npa);
+        }
     }
 }
 
@@ -583,7 +747,7 @@ async function showAppOpenAd() {
             window.admobAppOpenReady = false;
 
             if (window.admobBanner) await window.admobBanner.show();
-            await loadAppOpenAd();
+            await loadAppOpenAd(window.admobNpa);
         });
 
         appOpenAd.on('error', async () => {
@@ -593,7 +757,7 @@ async function showAppOpenAd() {
             window.admobAppOpenReady = false;
 
             if (window.admobBanner) await window.admobBanner.show();
-            await loadAppOpenAd();
+            await loadAppOpenAd(window.admobNpa);
         });
 
         await appOpenAd.show();
@@ -604,12 +768,6 @@ async function showAppOpenAd() {
         if (window.admobBanner) await window.admobBanner.show();
     }
 }
-
-document.addEventListener('deviceready', async () => {
-    if (!window.admobAppOpenReady) {
-        await loadAppOpenAd();
-    }
-}, false);
 
 document.addEventListener('resume', async () => {
     await showAppOpenAd();
@@ -623,42 +781,54 @@ let interstitialAd        = null;
 let interstitialReady     = false;
 let interstitialLastShown = 0;
 let interstitialShowing   = false;
+let interstitialRetries   = 0;
 
-async function loadInterstitialAd() {
+async function loadInterstitialAd(npa) {
     if (interstitialReady && window.admobInterstitialReady) return;
+    if (interstitialRetries >= MAX_RETRY_ATTEMPTS) {
+        interstitialRetries = 0;
+        return;
+    }
 
     try {
         interstitialAd = new admob.InterstitialAd({
-            adUnitId: ADMOB_CONFIG.interstitial,
+            adUnitId : ADMOB_CONFIG.interstitial,
+            npa      : npa,
         });
 
         await interstitialAd.load();
         interstitialReady             = true;
+        interstitialRetries           = 0;
         window.admobInterstitialReady = true;
 
-        // Ad ready — show the button
         showWatchAdButton();
-        console.log("Interstitial Ad loaded");
 
     } catch(e) {
         console.error("Interstitial load failed:", e);
         interstitialAd                = null;
         interstitialReady             = false;
         window.admobInterstitialReady = false;
+        interstitialRetries++;
+
         hideWatchAdButton();
+
+        // Retry with backoff
+        if (interstitialRetries < MAX_RETRY_ATTEMPTS) {
+            await wait(RETRY_DELAY_MS * interstitialRetries);
+            await loadInterstitialAd(npa);
+        }
     }
 }
 
 async function showInterstitialAd() {
-    if (interstitialShowing)                                             return;
-    if (!interstitialAd)                                                 return;
-    if (!interstitialReady)                                              return;
-    if ((Date.now() - interstitialLastShown) < INTERSTITIAL_COOLDOWN_MS) return;
+    if (interstitialShowing)                                              return;
+    if (!interstitialAd)                                                  return;
+    if (!interstitialReady)                                               return;
+    if ((Date.now() - interstitialLastShown) < INTERSTITIAL_COOLDOWN_MS)  return;
 
     try {
         interstitialShowing = true;
 
-        // Hide button and banner while showing
         hideWatchAdButton();
         if (window.admobBanner) await window.admobBanner.hide();
 
@@ -670,9 +840,7 @@ async function showInterstitialAd() {
             window.admobInterstitialReady = false;
 
             if (window.admobBanner) await window.admobBanner.show();
-
-            // Pre-load next interstitial silently
-            await loadInterstitialAd();
+            await loadInterstitialAd(window.admobNpa);
         });
 
         interstitialAd.on('error', async () => {
@@ -683,7 +851,7 @@ async function showInterstitialAd() {
 
             if (window.admobBanner) await window.admobBanner.show();
             hideWatchAdButton();
-            await loadInterstitialAd();
+            await loadInterstitialAd(window.admobNpa);
         });
 
         await interstitialAd.show();
@@ -695,16 +863,52 @@ async function showInterstitialAd() {
     }
 }
 
-// Initialize everything on deviceready
-document.addEventListener('deviceready', async () => {
-    // Step 1 — Create the button
-    createWatchAdButton();
 
-    // Step 2 — Load interstitial if not already loaded
+// ============================================
+// MASTER INIT — Entry point for everything
+// ============================================
+document.addEventListener('deviceready', async () => {
+
+    // Step 1 — Create buttons
+    createWatchAdButton();
+    createPrivacyButton();
+
+    // Step 2 — Run once only
+    if (!window.admobConsentDone) {
+
+        await admob.configure({
+            testDevices: ADMOB_CONFIG.testDevices,
+        });
+
+        await admob.start();
+
+        // Step 3 — Consent BEFORE any ads
+        const canRequest        = await initConsent();
+        window.admobConsentDone = true;
+        window.admobNpa         = canRequest ? 0 : 1;
+    }
+
+    // Step 4 — Privacy button visibility check on every page
+    try {
+        const privacyStatus = await consent.privacyOptionsRequirementStatus();
+        if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
+            showPrivacyButton();
+        }
+    } catch(e) {}
+
+    // Step 5 — Banner (show/hide per page)
+    await initBanner(window.admobNpa);
+
+    // Step 6 — App Open Ad once
+    if (!window.admobAppOpenReady) {
+        await loadAppOpenAd(window.admobNpa);
+    }
+
+    // Step 7 — Interstitial once
     if (!window.admobInterstitialReady) {
-        await loadInterstitialAd();
+        await loadInterstitialAd(window.admobNpa);
     } else {
-        // Already loaded from previous page — just show button
         showWatchAdButton();
     }
+
 }, false);
