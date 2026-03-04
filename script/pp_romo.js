@@ -410,17 +410,16 @@ if (document.readyState === 'loading') {
 // CONFIGURATION
 // ============================================
 const ADMOB_CONFIG = {
-    testDevices     : ['f5af6f48-23f7-412f-af01-4ee218d6893a'],
-    testGeography   : 'EEA',  // 'EEA', 'NotEEA', 'RegulatedUsState', 'Other', or null for production
-    banner          : 'ca-app-pub-3940256099942544/6300978111',
-    appOpen         : 'ca-app-pub-3940256099942544/9257395921',
-    interstitial    : 'ca-app-pub-3940256099942544/1033173712',
+    testDevices  : ['f5af6f48-23f7-412f-af01-4ee218d6893a'],
+    banner       : 'ca-app-pub-3940256099942544/6300978111',
+    appOpen      : 'ca-app-pub-3940256099942544/9257395921',
+    interstitial : 'ca-app-pub-3940256099942544/1033173712',
 };
 
 const APP_OPEN_EXPIRY_MS       = 4 * 60 * 60 * 1000; // 4 hours
-const INTERSTITIAL_COOLDOWN_MS = 60 * 1000;           // 1 minute cooldown
-const MAX_RETRY_ATTEMPTS       = 3;                   // Max retries on ad load fail
-const RETRY_DELAY_MS           = 5 * 1000;            // 5 seconds between retries
+const INTERSTITIAL_COOLDOWN_MS = 60 * 1000;           // 1 minute
+const MAX_RETRY_ATTEMPTS       = 3;                   // Max retries
+const RETRY_DELAY_MS           = 5 * 1000;            // 5 seconds
 
 
 // ============================================
@@ -444,14 +443,14 @@ function createWatchAdButton() {
     Object.assign(btn.style, {
         display        : 'none',
         position       : 'fixed',
-        top            : '8px',
+        top            : '15px',
         right          : '15px',
         zIndex         : '9999',
         background     : '#FF6600',
         border         : 'none',
         borderRadius   : '50%',
-        width          : '35px',
-        height         : '35px',
+        width          : '45px',
+        height         : '45px',
         cursor         : 'pointer',
         boxShadow      : '0 2px 6px rgba(0,0,0,0.4)',
         alignItems     : 'center',
@@ -493,8 +492,7 @@ function hideWatchAdButton() {
 
 
 // ============================================
-// CREATE PRIVACY OPTIONS BUTTON VIA JAVASCRIPT
-// Required by GDPR — lets users change consent
+// CREATE PRIVACY BUTTON VIA JAVASCRIPT
 // ============================================
 function createPrivacyButton() {
     if (document.getElementById('privacyBtn')) return;
@@ -506,7 +504,7 @@ function createPrivacyButton() {
     Object.assign(btn.style, {
         display        : 'none',
         position       : 'fixed',
-        bottom         : '65px',        // Just above banner ad
+        bottom         : '65px',
         left           : '10px',
         zIndex         : '9999',
         background     : 'rgba(0,0,0,0.5)',
@@ -530,8 +528,8 @@ function createPrivacyButton() {
         pointerEvents : 'none',
     });
 
-    const label = document.createElement('span');
-    label.innerText = 'Privacy';
+    const label       = document.createElement('span');
+    label.innerText   = 'Privacy';
 
     Object.assign(label.style, {
         color         : 'white',
@@ -551,15 +549,12 @@ function createPrivacyButton() {
 async function showPrivacyOptions() {
     try {
         const status = await consent.privacyOptionsRequirementStatus();
-
         if (status === consent.PrivacyOptionsRequirementStatus.Required) {
             await consent.showPrivacyOptionsForm();
-            // Re-check consent after user changes preferences
+            // Update npa after user changes preferences
             window.admobNpa = (await consent.canRequestAds()) ? 0 : 1;
         }
-    } catch(e) {
-        console.error("Privacy options error:", e);
-    }
+    } catch(e) {}
 }
 
 function showPrivacyButton() {
@@ -578,51 +573,60 @@ function hidePrivacyButton() {
 
 
 // ============================================
-// CONSENT — Must run before any ads
+// CONSENT — Runs once, respects user choice
 // ============================================
- 
- async function initConsent() {
+async function initConsent() {
     try {
-        await consent.reset();
-        alert('Step 1: Reset done');
-
-        // Skip requestInfoUpdate options — use plain call
-        await consent.requestInfoUpdate();
-        alert('Step 2: InfoUpdate done');
-
-        const consentStatus = await consent.getConsentStatus();
-        alert('Step 3: Consent = ' + consentStatus);
-
-        const formStatus = await consent.getFormStatus();
-        alert('Step 4: Form = ' + formStatus);
-
-        // Try manual form load instead of loadAndShowIfRequired
-        if (formStatus === consent.FormStatus.Available) {
-            try {
-                const form = await consent.loadForm();
-                alert('Step 5: Form loaded manually');
-                await form.show();
-                alert('Step 6: Form shown');
-            } catch(e) {
-                alert('Form error: ' + JSON.stringify(e));
-            }
-        } else {
-            // Try loadAndShowIfRequired as fallback
-            await consent.loadAndShowIfRequired();
-            alert('Step 5: loadAndShowIfRequired done');
+        // iOS only — App Tracking Transparency
+        if (cordova.platformId === 'ios') {
+            await consent.requestTrackingAuthorization();
         }
 
-        const privacyStatus = await consent.privacyOptionsRequirementStatus();
-        alert('Step 6: Privacy = ' + privacyStatus);
+        // Step 1 — Get current consent status
+        const consentStatus = await consent.getConsentStatus();
 
+        // Step 2 — Only proceed if consent unknown or required
+        if (
+            consentStatus === consent.ConsentStatus.Unknown ||
+            consentStatus === consent.ConsentStatus.Required
+        ) {
+            await consent.requestInfoUpdate();
+
+            // Step 3 — Re-check status AFTER update
+            const freshStatus = await consent.getConsentStatus();
+
+            // Step 4 — Only show form if still Required
+            // Obtained means user already made a choice — never show again
+            if (freshStatus === consent.ConsentStatus.Required) {
+                const formStatus = await consent.getFormStatus();
+
+                if (formStatus === consent.FormStatus.Available) {
+                    const form = await consent.loadForm();
+                    await form.show();
+
+                    // Show privacy button right after
+                    // user interacts with consent form
+                    showPrivacyButton();
+
+                } else {
+                    await consent.loadAndShowIfRequired();
+                }
+            }
+        }
+
+        // Step 5 — Check privacy button requirement
+        // Covers returning EEA/US users who already consented
+        const privacyStatus = await consent.privacyOptionsRequirementStatus();
         if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
             showPrivacyButton();
+        } else {
+            hidePrivacyButton();
         }
 
         return await consent.canRequestAds();
 
     } catch(e) {
-        alert('CONSENT ERROR: ' + JSON.stringify(e));
+        // Safe fallback — allow ads but non-personalized
         return true;
     }
 }
@@ -647,7 +651,6 @@ async function initBanner(npa) {
             });
 
             window.admobBanner.on('error', async () => {
-                // Retry banner silently after delay
                 await wait(RETRY_DELAY_MS);
                 try {
                     await window.admobBanner.load();
@@ -661,9 +664,7 @@ async function initBanner(npa) {
 
         banner = window.admobBanner;
 
-    } catch(e) {
-        console.error("Banner Error:", e);
-    }
+    } catch(e) {}
 }
 
 window.addEventListener('pagehide', () => {
@@ -692,7 +693,7 @@ function isAppOpenAdFresh() {
 async function loadAppOpenAd(npa) {
     if (appOpenAd && isAppOpenAdFresh()) return;
     if (appOpenRetries >= MAX_RETRY_ATTEMPTS) {
-        appOpenRetries = 0; // Reset for next natural attempt
+        appOpenRetries = 0;
         return;
     }
 
@@ -709,13 +710,11 @@ async function loadAppOpenAd(npa) {
         window.admobAppOpenReady = true;
 
     } catch(e) {
-        console.error("App Open Ad load failed:", e);
         appOpenAd                = null;
         appOpenReady             = false;
         window.admobAppOpenReady = false;
         appOpenRetries++;
 
-        // Retry with backoff
         if (appOpenRetries < MAX_RETRY_ATTEMPTS) {
             await wait(RETRY_DELAY_MS * appOpenRetries);
             await loadAppOpenAd(npa);
@@ -757,7 +756,6 @@ async function showAppOpenAd() {
         await appOpenAd.show();
 
     } catch(e) {
-        console.error("App Open Ad show failed:", e);
         appOpenIsShowing = false;
         if (window.admobBanner) await window.admobBanner.show();
     }
@@ -798,7 +796,6 @@ async function loadInterstitialAd(npa) {
         showWatchAdButton();
 
     } catch(e) {
-        console.error("Interstitial load failed:", e);
         interstitialAd                = null;
         interstitialReady             = false;
         window.admobInterstitialReady = false;
@@ -806,7 +803,6 @@ async function loadInterstitialAd(npa) {
 
         hideWatchAdButton();
 
-        // Retry with backoff
         if (interstitialRetries < MAX_RETRY_ATTEMPTS) {
             await wait(RETRY_DELAY_MS * interstitialRetries);
             await loadInterstitialAd(npa);
@@ -851,7 +847,6 @@ async function showInterstitialAd() {
         await interstitialAd.show();
 
     } catch(e) {
-        console.error("Interstitial show failed:", e);
         interstitialShowing = false;
         if (window.admobBanner) await window.admobBanner.show();
     }
@@ -867,7 +862,7 @@ document.addEventListener('deviceready', async () => {
     createWatchAdButton();
     createPrivacyButton();
 
-    // Step 2 — Run once only
+    // Step 2 — Run consent + admob start ONCE only
     if (!window.admobConsentDone) {
 
         await admob.configure({
@@ -876,13 +871,13 @@ document.addEventListener('deviceready', async () => {
 
         await admob.start();
 
-        // Step 3 — Consent BEFORE any ads
+        // Consent MUST happen before any ads
         const canRequest        = await initConsent();
         window.admobConsentDone = true;
         window.admobNpa         = canRequest ? 0 : 1;
     }
 
-    // Step 4 — Privacy button visibility check on every page
+    // Step 3 — Privacy button visibility on every page
     try {
         const privacyStatus = await consent.privacyOptionsRequirementStatus();
         if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
@@ -890,15 +885,15 @@ document.addEventListener('deviceready', async () => {
         }
     } catch(e) {}
 
-    // Step 5 — Banner (show/hide per page)
+    // Step 4 — Banner show/hide per page
     await initBanner(window.admobNpa);
 
-    // Step 6 — App Open Ad once
+    // Step 5 — App Open Ad once
     if (!window.admobAppOpenReady) {
         await loadAppOpenAd(window.admobNpa);
     }
 
-    // Step 7 — Interstitial once
+    // Step 6 — Interstitial once
     if (!window.admobInterstitialReady) {
         await loadInterstitialAd(window.admobNpa);
     } else {
