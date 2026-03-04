@@ -591,13 +591,20 @@ function hidePrivacyButton() {
             await consent.requestTrackingAuthorization();
         }
 
-        const infoOpts = {
-            debugGeography : consent.DebugGeography.EEA,
-            testDevices    : ADMOB_CONFIG.testDevices,
-        };
+  const infoOpts = {
+    debugGeography : consent.DebugGeography.EEA,
+    testDevices    : ADMOB_CONFIG.testDevices,
+};
 
-        await consent.requestInfoUpdate(infoOpts);
-        alert('Step 2: requestInfoUpdate() done');
+// Check what values are actually being sent
+alert(
+    'debugGeography value: ' + consent.DebugGeography.EEA + '\n' +
+    'testDevices: ' + ADMOB_CONFIG.testDevices + '\n' +
+    'EEA enum value: ' + JSON.stringify(consent.DebugGeography)
+);
+
+await consent.requestInfoUpdate(infoOpts);
+    alert('Step 2: requestInfoUpdate() done');
 
         const formStatus = await consent.getFormStatus();
         alert('Step 3: Form Status = ' + formStatus);
