@@ -876,13 +876,18 @@ document.addEventListener('deviceready', async () => {
     // Step 3 — Privacy button visibility on every page
 try {
     const privacyStatus = await consent.privacyOptionsRequirementStatus();
+    alert('Privacy Status: ' + privacyStatus + '\n' +
+          'Required value: ' + consent.PrivacyOptionsRequirementStatus.Required + '\n' +
+          'NotRequired value: ' + consent.PrivacyOptionsRequirementStatus.NotRequired);
+    
     if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
-        showPrivacyButton(); // ← Only EEA/US users ✅
+        showPrivacyButton();
     } else {
-        hidePrivacyButton(); // ← Everyone else hidden ✅
+        hidePrivacyButton();
     }
 } catch(e) {
-    hidePrivacyButton(); // ← Hide on error too ✅
+    alert('Privacy Status Error: ' + JSON.stringify(e));
+    hidePrivacyButton();
 }
 
     // Step 4 — Banner show/hide per page
