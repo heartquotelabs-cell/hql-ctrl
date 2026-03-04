@@ -577,36 +577,36 @@ function hidePrivacyButton() {
 // ============================================
 async function initConsent() {
     try {
-        // iOS only — App Tracking Transparency
         if (cordova.platformId === 'ios') {
             await consent.requestTrackingAuthorization();
         }
 
-        // Step 1 — Get current consent status
         const consentStatus = await consent.getConsentStatus();
+        alert('initConsent — Consent Status: ' + consentStatus);
 
-        // Step 2 — Only proceed if consent unknown or required
         if (
             consentStatus === consent.ConsentStatus.Unknown ||
             consentStatus === consent.ConsentStatus.Required
         ) {
             await consent.requestInfoUpdate();
 
-            // Step 3 — Re-check status AFTER update
             const freshStatus = await consent.getConsentStatus();
+            alert('initConsent — Fresh Status: ' + freshStatus);
 
-            // Step 4 — Only show form if still Required
-            // Obtained means user already made a choice — never show again
             if (freshStatus === consent.ConsentStatus.Required) {
                 const formStatus = await consent.getFormStatus();
+                alert('initConsent — Form Status: ' + formStatus);
 
                 if (formStatus === consent.FormStatus.Available) {
                     const form = await consent.loadForm();
                     await form.show();
 
-                    // Show privacy button right after
-                    // user interacts with consent form
-                    showPrivacyButton();
+                    // Check BEFORE showing button
+                    const ps = await consent.privacyOptionsRequirementStatus();
+                    alert('initConsent — Privacy Status after form: ' + ps);
+                    if (Number(ps) === 1) {
+                        showPrivacyButton();
+                    }
 
                 } else {
                     await consent.loadAndShowIfRequired();
@@ -614,10 +614,11 @@ async function initConsent() {
             }
         }
 
-        // Step 5 — Check privacy button requirement
-        // Covers returning EEA/US users who already consented
+        // Final check
         const privacyStatus = await consent.privacyOptionsRequirementStatus();
-        if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
+        alert('initConsent — Final Privacy Status: ' + privacyStatus);
+
+        if (Number(privacyStatus) === 1) {
             showPrivacyButton();
         } else {
             hidePrivacyButton();
@@ -626,7 +627,8 @@ async function initConsent() {
         return await consent.canRequestAds();
 
     } catch(e) {
-        // Safe fallback — allow ads but non-personalized
+        alert('initConsent ERROR: ' + JSON.stringify(e));
+        hidePrivacyButton();
         return true;
     }
 }
