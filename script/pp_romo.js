@@ -410,10 +410,10 @@ if (document.readyState === 'loading') {
 // CONFIGURATION
 // ============================================
 const ADMOB_CONFIG = {
-    testDevices  : ['f5af6f48-23f7-412f-af01-4ee218d6893a'],
-    banner       : 'ca-app-pub-3940256099942544/6300978111',
-    appOpen      : 'ca-app-pub-3940256099942544/9257395921',
-    interstitial : 'ca-app-pub-3940256099942544/1033173712',
+    testDevices  : [],
+    banner       : 'ca-app-pub-5188642994982403/7847467013',
+    appOpen      : 'ca-app-pub-5188642994982403/4281888101',
+    interstitial : 'ca-app-pub-5188642994982403/1811807909',
 };
 
 const APP_OPEN_EXPIRY_MS       = 4 * 60 * 60 * 1000; // 4 hours
@@ -864,10 +864,6 @@ document.addEventListener('deviceready', async () => {
 
     // Step 2 — Run consent + admob start ONCE only
     if (!window.admobConsentDone) {
-
-        await admob.configure({
-            testDevices: ADMOB_CONFIG.testDevices,
-        });
 
         await admob.start();
 
