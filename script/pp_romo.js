@@ -402,10 +402,6 @@ if (document.readyState === 'loading') {
 
 
 
-
-
-
-
 // ============================================
 // CONFIGURATION
 // ============================================
@@ -427,6 +423,32 @@ const RETRY_DELAY_MS           = 5 * 1000;            // 5 seconds
 // ============================================
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
+// ============================================
+// HELPERS — Single source of truth
+// ============================================
+
+// Privacy button only for EEA/US regulated users
+function shouldShowPrivacyButton() {
+    const s = window.admobConsentStatus;
+    // 1 = Required (EEA/US user, not consented yet)
+    // 3 = Obtained (EEA/US user, already consented)
+    return s === 1 || s === 3;
+}
+
+// Watch Ad button only shows when:
+// 1. Ad is loaded
+// 2. Non EEA/US users — immediately
+// 3. EEA/US users — only after consent dialog done
+function shouldShowWatchAdButton() {
+    const s = window.admobConsentStatus;
+    // 0 = Unknown     → consent not done yet → hide
+    // 1 = Required    → consent form not shown yet → hide
+    // 2 = NotRequired → outside EEA/US → show ✅
+    // 3 = Obtained    → EEA/US consented → show ✅
+    return s === 2 || s === 3;
 }
 
 
@@ -477,6 +499,7 @@ function createWatchAdButton() {
 }
 
 function showWatchAdButton() {
+    if (!shouldShowWatchAdButton()) return; // ← Guard ✅
     const btn = document.getElementById('watchAdBtn');
     if (btn) {
         btn.style.display        = 'flex';
@@ -502,7 +525,7 @@ function createPrivacyButton() {
     btn.title  = 'Privacy Settings';
 
     Object.assign(btn.style, {
-        display        : 'none', // ← Always hidden by default ✅
+        display        : 'none',
         position       : 'fixed',
         bottom         : '65px',
         left           : '10px',
@@ -548,16 +571,18 @@ function createPrivacyButton() {
 
 async function showPrivacyOptions() {
     try {
-        const status = await consent.privacyOptionsRequirementStatus();
-        if (status === consent.PrivacyOptionsRequirementStatus.Required) {
+        if (shouldShowPrivacyButton()) {
             await consent.showPrivacyOptionsForm();
-            // Update npa after user changes preferences
-            window.admobNpa = (await consent.canRequestAds()) ? 0 : 1;
+            // Update consent status after user changes preferences
+            const newStatus           = await consent.getConsentStatus();
+            window.admobConsentStatus = Number(newStatus);
+            window.admobNpa           = (await consent.canRequestAds()) ? 0 : 1;
         }
     } catch(e) {}
 }
 
 function showPrivacyButton() {
+    if (!shouldShowPrivacyButton()) return; // ← Guard ✅
     const btn = document.getElementById('privacyBtn');
     if (btn) {
         btn.style.display        = 'flex';
@@ -581,53 +606,59 @@ async function initConsent() {
             await consent.requestTrackingAuthorization();
         }
 
-        const consentStatus = await consent.getConsentStatus();
-        alert('initConsent — Consent Status: ' + consentStatus);
+        // Step 1 — Get current consent status
+        const consentStatus           = await consent.getConsentStatus();
+        window.admobConsentStatus     = Number(consentStatus);
 
+        // Step 2 — Only proceed if unknown or required
         if (
             consentStatus === consent.ConsentStatus.Unknown ||
             consentStatus === consent.ConsentStatus.Required
         ) {
             await consent.requestInfoUpdate();
 
-            const freshStatus = await consent.getConsentStatus();
-            alert('initConsent — Fresh Status: ' + freshStatus);
+            // Step 3 — Re-check after update
+            const freshStatus         = await consent.getConsentStatus();
+            window.admobConsentStatus = Number(freshStatus);
 
+            // Step 4 — Only show form if still Required
             if (freshStatus === consent.ConsentStatus.Required) {
                 const formStatus = await consent.getFormStatus();
-                alert('initConsent — Form Status: ' + formStatus);
 
                 if (formStatus === consent.FormStatus.Available) {
                     const form = await consent.loadForm();
                     await form.show();
 
-                    // Check BEFORE showing button
-                    const ps = await consent.privacyOptionsRequirementStatus();
-                    alert('initConsent — Privacy Status after form: ' + ps);
-                    if (Number(ps) === 1) {
-                        showPrivacyButton();
-                    }
+                    // Re-check after user interacts with form
+                    const afterStatus         = await consent.getConsentStatus();
+                    window.admobConsentStatus = Number(afterStatus);
 
                 } else {
                     await consent.loadAndShowIfRequired();
+
+                    // Re-check after loadAndShowIfRequired
+                    const afterStatus         = await consent.getConsentStatus();
+                    window.admobConsentStatus = Number(afterStatus);
                 }
             }
         }
 
-        // Final check
-        const privacyStatus = await consent.privacyOptionsRequirementStatus();
-        alert('initConsent — Final Privacy Status: ' + privacyStatus);
-
-        if (Number(privacyStatus) === 1) {
+        // Step 5 — Update buttons based on final consent status
+        if (shouldShowPrivacyButton()) {
             showPrivacyButton();
         } else {
             hidePrivacyButton();
         }
 
+        // Show watch ad button if consent allows
+        // Actual show handled after interstitial loads
+        if (!shouldShowWatchAdButton()) {
+            hideWatchAdButton();
+        }
+
         return await consent.canRequestAds();
 
     } catch(e) {
-        alert('initConsent ERROR: ' + JSON.stringify(e));
         hidePrivacyButton();
         return true;
     }
@@ -795,6 +826,7 @@ async function loadInterstitialAd(npa) {
         interstitialRetries           = 0;
         window.admobInterstitialReady = true;
 
+        // Only show button if consent status allows ✅
         showWatchAdButton();
 
     } catch(e) {
@@ -860,84 +892,52 @@ async function showInterstitialAd() {
 // ============================================
 document.addEventListener('deviceready', async () => {
 
-    // Step 1 — Create buttons
+    // Step 1 — Create buttons, hide both by default
     createWatchAdButton();
     createPrivacyButton();
-    alert('Step 1: Buttons created');
+    hidePrivacyButton();
+    hideWatchAdButton();
 
     // Step 2 — Run consent + admob start ONCE only
     if (!window.admobConsentDone) {
-        alert('Step 2: Starting admob configure');
 
         await admob.configure({
             testDevices: ADMOB_CONFIG.testDevices,
         });
-        alert('Step 2a: admob.configure done');
 
         await admob.start();
-        alert('Step 2b: admob.start done');
 
-        const canRequest = await initConsent();
-        alert('Step 2c: initConsent done — canRequest = ' + canRequest);
-
-        window.admobConsentDone = true;
-        window.admobNpa         = canRequest ? 0 : 1;
-        alert('Step 2d: npa = ' + window.admobNpa);
+        // Consent MUST happen before any ads
+        const canRequest          = await initConsent();
+        window.admobConsentDone   = true;
+        window.admobNpa           = canRequest ? 0 : 1;
 
     } else {
-        alert('Step 2: SKIPPED — already initialized');
-    }
 
-    // Step 3 — Privacy button visibility on every page
-    try {
-        const privacyStatus = await consent.privacyOptionsRequirementStatus();
-        alert(
-            'Step 3: Privacy Check\n' +
-            'Type: '         + typeof privacyStatus                                  + '\n' +
-            'Value: '        + privacyStatus                                          + '\n' +
-            'Required is: '  + consent.PrivacyOptionsRequirementStatus.Required       + '\n' +
-            'Strict ===: '   + (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) + '\n' +
-            'Loose ==: '     + (privacyStatus == consent.PrivacyOptionsRequirementStatus.Required)  + '\n' +
-            'Number cast: '  + (Number(privacyStatus) === 1)
-        );
-
-        const statusNum = Number(privacyStatus);
-        if (statusNum === 1) {
+        // Already initialized — restore consent status on new page
+        // Re-check buttons based on stored consent status
+        if (shouldShowPrivacyButton()) {
             showPrivacyButton();
-            alert('Step 3: Privacy button SHOWN');
         } else {
             hidePrivacyButton();
-            alert('Step 3: Privacy button HIDDEN');
         }
-    } catch(e) {
-        alert('Step 3 ERROR: ' + JSON.stringify(e));
-        hidePrivacyButton();
+
     }
 
-    // Step 4 — Banner show/hide per page
-    alert('Step 4: Starting banner init');
+    // Step 3 — Banner show/hide per page
     await initBanner(window.admobNpa);
-    alert('Step 4: Banner init done');
 
-    // Step 5 — App Open Ad once
+    // Step 4 — App Open Ad once
     if (!window.admobAppOpenReady) {
-        alert('Step 5: Loading App Open Ad');
         await loadAppOpenAd(window.admobNpa);
-        alert('Step 5: App Open Ad load done');
-    } else {
-        alert('Step 5: SKIPPED — App Open Ad already ready');
     }
 
-    // Step 6 — Interstitial once
+    // Step 5 — Interstitial once
     if (!window.admobInterstitialReady) {
-        alert('Step 6: Loading Interstitial Ad');
-        await loadInterstitialAd(window.admobNpa);
-        alert('Step 6: Interstitial load done');
+    await loadInterstitialAd(window.admobNpa);
     } else {
-        alert('Step 6: SKIPPED — Interstitial already ready, showing button');
+        // Already loaded — show button if consent allows
         showWatchAdButton();
     }
-
-    alert('✅ MASTER INIT COMPLETE');
 
 }, false);
