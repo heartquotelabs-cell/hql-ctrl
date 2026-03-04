@@ -410,7 +410,7 @@ if (document.readyState === 'loading') {
 // CONFIGURATION
 // ============================================
 const ADMOB_CONFIG = {
-    testDevices  : [],
+    testDevices  : ['f5af6f48-23f7-412f-af01-4ee218d6893a'],
     banner       : 'ca-app-pub-5188642994982403/7847467013',
     appOpen      : 'ca-app-pub-5188642994982403/4281888101',
     interstitial : 'ca-app-pub-5188642994982403/1811807909',
@@ -861,48 +861,81 @@ document.addEventListener('deviceready', async () => {
     // Step 1 — Create buttons
     createWatchAdButton();
     createPrivacyButton();
+    alert('Step 1: Buttons created');
 
     // Step 2 — Run consent + admob start ONCE only
     if (!window.admobConsentDone) {
+        alert('Step 2: Starting admob configure');
+
+        await admob.configure({
+            testDevices: ADMOB_CONFIG.testDevices,
+        });
+        alert('Step 2a: admob.configure done');
 
         await admob.start();
+        alert('Step 2b: admob.start done');
 
-        // Consent MUST happen before any ads
-        const canRequest        = await initConsent();
+        const canRequest = await initConsent();
+        alert('Step 2c: initConsent done — canRequest = ' + canRequest);
+
         window.admobConsentDone = true;
         window.admobNpa         = canRequest ? 0 : 1;
+        alert('Step 2d: npa = ' + window.admobNpa);
+
+    } else {
+        alert('Step 2: SKIPPED — already initialized');
     }
 
     // Step 3 — Privacy button visibility on every page
-try {
-    const privacyStatus = await consent.privacyOptionsRequirementStatus();
-    alert('Privacy Status: ' + privacyStatus + '\n' +
-          'Required value: ' + consent.PrivacyOptionsRequirementStatus.Required + '\n' +
-          'NotRequired value: ' + consent.PrivacyOptionsRequirementStatus.NotRequired);
-    
-    if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
-        showPrivacyButton();
-    } else {
+    try {
+        const privacyStatus = await consent.privacyOptionsRequirementStatus();
+        alert(
+            'Step 3: Privacy Check\n' +
+            'Type: '         + typeof privacyStatus                                  + '\n' +
+            'Value: '        + privacyStatus                                          + '\n' +
+            'Required is: '  + consent.PrivacyOptionsRequirementStatus.Required       + '\n' +
+            'Strict ===: '   + (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) + '\n' +
+            'Loose ==: '     + (privacyStatus == consent.PrivacyOptionsRequirementStatus.Required)  + '\n' +
+            'Number cast: '  + (Number(privacyStatus) === 1)
+        );
+
+        const statusNum = Number(privacyStatus);
+        if (statusNum === 1) {
+            showPrivacyButton();
+            alert('Step 3: Privacy button SHOWN');
+        } else {
+            hidePrivacyButton();
+            alert('Step 3: Privacy button HIDDEN');
+        }
+    } catch(e) {
+        alert('Step 3 ERROR: ' + JSON.stringify(e));
         hidePrivacyButton();
     }
-} catch(e) {
-    alert('Privacy Status Error: ' + JSON.stringify(e));
-    hidePrivacyButton();
-}
 
     // Step 4 — Banner show/hide per page
+    alert('Step 4: Starting banner init');
     await initBanner(window.admobNpa);
+    alert('Step 4: Banner init done');
 
     // Step 5 — App Open Ad once
     if (!window.admobAppOpenReady) {
+        alert('Step 5: Loading App Open Ad');
         await loadAppOpenAd(window.admobNpa);
+        alert('Step 5: App Open Ad load done');
+    } else {
+        alert('Step 5: SKIPPED — App Open Ad already ready');
     }
 
     // Step 6 — Interstitial once
     if (!window.admobInterstitialReady) {
+        alert('Step 6: Loading Interstitial Ad');
         await loadInterstitialAd(window.admobNpa);
+        alert('Step 6: Interstitial load done');
     } else {
+        alert('Step 6: SKIPPED — Interstitial already ready, showing button');
         showWatchAdButton();
     }
+
+    alert('✅ MASTER INIT COMPLETE');
 
 }, false);
