@@ -443,14 +443,14 @@ function createWatchAdButton() {
     Object.assign(btn.style, {
         display        : 'none',
         position       : 'fixed',
-        top            : '15px',
+        top            : '7px',
         right          : '15px',
         zIndex         : '9999',
         background     : '#FF6600',
         border         : 'none',
         borderRadius   : '50%',
-        width          : '45px',
-        height         : '45px',
+        width          : '35px',
+        height         : '35px',
         cursor         : 'pointer',
         boxShadow      : '0 2px 6px rgba(0,0,0,0.4)',
         alignItems     : 'center',
@@ -502,7 +502,7 @@ function createPrivacyButton() {
     btn.title  = 'Privacy Settings';
 
     Object.assign(btn.style, {
-        display        : 'none',
+        display        : 'none', // ← Always hidden by default ✅
         position       : 'fixed',
         bottom         : '65px',
         left           : '10px',
@@ -528,8 +528,8 @@ function createPrivacyButton() {
         pointerEvents : 'none',
     });
 
-    const label       = document.createElement('span');
-    label.innerText   = 'Privacy';
+    const label     = document.createElement('span');
+    label.innerText = 'Privacy';
 
     Object.assign(label.style, {
         color         : 'white',
@@ -874,12 +874,16 @@ document.addEventListener('deviceready', async () => {
     }
 
     // Step 3 — Privacy button visibility on every page
-    try {
-        const privacyStatus = await consent.privacyOptionsRequirementStatus();
-        if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
-            showPrivacyButton();
-        }
-    } catch(e) {}
+try {
+    const privacyStatus = await consent.privacyOptionsRequirementStatus();
+    if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
+        showPrivacyButton(); // ← Only EEA/US users ✅
+    } else {
+        hidePrivacyButton(); // ← Everyone else hidden ✅
+    }
+} catch(e) {
+    hidePrivacyButton(); // ← Hide on error too ✅
+}
 
     // Step 4 — Banner show/hide per page
     await initBanner(window.admobNpa);
