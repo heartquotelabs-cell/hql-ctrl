@@ -583,45 +583,43 @@ function hidePrivacyButton() {
  
  async function initConsent() {
     try {
-        // TEMPORARY — forces fresh consent check
         await consent.reset();
-        alert('Step 1: consent.reset() done');
+        alert('Step 1: Reset done');
 
-        if (cordova.platformId === 'ios') {
-            await consent.requestTrackingAuthorization();
-        }
-
-  const infoOpts = {
-    debugGeography : consent.DebugGeography.EEA,
-    // No testDevices at all
-};
-
-await consent.requestInfoUpdate(infoOpts);
-alert('Consent status after: ' + await consent.getConsentStatus());
-alert('Form status after: ' + await consent.getFormStatus());
-
-    alert('Step 2: requestInfoUpdate() done');
-
-        const formStatus = await consent.getFormStatus();
-        alert('Step 3: Form Status = ' + formStatus);
+        // Skip requestInfoUpdate options — use plain call
+        await consent.requestInfoUpdate();
+        alert('Step 2: InfoUpdate done');
 
         const consentStatus = await consent.getConsentStatus();
-        alert('Step 4: Consent Status = ' + consentStatus);
+        alert('Step 3: Consent = ' + consentStatus);
 
-        await consent.loadAndShowIfRequired();
-        alert('Step 5: loadAndShowIfRequired() done');
+        const formStatus = await consent.getFormStatus();
+        alert('Step 4: Form = ' + formStatus);
+
+        // Try manual form load instead of loadAndShowIfRequired
+        if (formStatus === consent.FormStatus.Available) {
+            try {
+                const form = await consent.loadForm();
+                alert('Step 5: Form loaded manually');
+                await form.show();
+                alert('Step 6: Form shown');
+            } catch(e) {
+                alert('Form error: ' + JSON.stringify(e));
+            }
+        } else {
+            // Try loadAndShowIfRequired as fallback
+            await consent.loadAndShowIfRequired();
+            alert('Step 5: loadAndShowIfRequired done');
+        }
 
         const privacyStatus = await consent.privacyOptionsRequirementStatus();
-        alert('Step 6: Privacy Status = ' + privacyStatus);
+        alert('Step 6: Privacy = ' + privacyStatus);
 
         if (privacyStatus === consent.PrivacyOptionsRequirementStatus.Required) {
             showPrivacyButton();
         }
 
-        const canRequest = await consent.canRequestAds();
-        alert('Step 7: canRequestAds = ' + canRequest);
-
-        return canRequest;
+        return await consent.canRequestAds();
 
     } catch(e) {
         alert('CONSENT ERROR: ' + JSON.stringify(e));
