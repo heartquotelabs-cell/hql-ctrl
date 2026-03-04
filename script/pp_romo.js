@@ -404,7 +404,8 @@ if (document.readyState === 'loading') {
 
 // ============================================
 // CONFIGURATION
-// ============================================const ADMOB_CONFIG = {
+// ============================================
+const ADMOB_CONFIG = {
     testDevices  : ['f5af6f48-23f7-412f-af01-4ee218d6893a'],
     banner       : 'ca-app-pub-3940256099942544/6300978111',
     appOpen      : 'ca-app-pub-3940256099942544/9257395921',
