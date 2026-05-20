@@ -1,4 +1,3 @@
-
 (function() {
     "use strict";
 
@@ -102,28 +101,26 @@
                 function ensureInfoBubble() {
                     if (!messagesArea.querySelector('.pre-info-static')) {
                         const infoDiv = document.createElement('div');
-                        infoDiv.className = 'pre-info-message pre-info-static';
-                        infoDiv.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Support</strong><br>Share feedback or just say hello. <br> We are here for you';
-                        messagesArea.prepend(infoDiv);
+        infoDiv.className = 'pre-info-message pre-info-static';
+   infoDiv.innerHTML = '';
+     messagesArea.prepend(infoDiv);
                     }
                 }
 
                 // Load messages & render with double ticks / seen
-                onValue(feedbackRef, (snapshot) => {
-                    const data = snapshot.val();
-                    messagesArea.innerHTML = '';
-                    
-                    // Re-add the static info bubble
-                    const infoBubble = document.createElement('div');
-                    infoBubble.className = 'pre-info-message pre-info-static';
-                    infoBubble.innerHTML = '<i class="fas fa-clock"></i> <strong>Support</strong><br>We reply within 30 min or more faster but sometimes it can take longer upto 1 day.<br> Your feedback matters!';
-                    messagesArea.appendChild(infoBubble);
+       onValue(feedbackRef, (snapshot) => {
+     const data = snapshot.val();
+        messagesArea.innerHTML = '';
+        const infoBubble = document.createElement('div');
+    infoBubble.className = 'pre-info-message pre-info-static';
+    infoBubble.innerHTML = '<i class="fas fa-clock"></i> <strong>Support</strong><br>We respond quickly. <br> Sometimes it can take longer.<br> Your feedback matters!';
+     messagesArea.appendChild(infoBubble);
 
-                    if (!data) {
-                        const emptyDiv = document.createElement('div');
-                        emptyDiv.className = 'empty-chat';
-                        emptyDiv.innerHTML = '<i class="far fa-smile" style="font-size:32px; opacity:0.4; margin-bottom:8px;"></i><br>No messages yet. Say hello! 👋';
-                        messagesArea.appendChild(emptyDiv);
+         if (!data) {
+       const emptyDiv = document.createElement('div');
+         emptyDiv.className = 'empty-chat';
+      emptyDiv.innerHTML = '<i class="far fa-smile" style="font-size:32px; opacity:0.4; margin-bottom:8px;"></i><br>No messages yet. Get support or just say hello! 👋';
+             messagesArea.appendChild(emptyDiv);
                         return;
                     }
 
@@ -205,11 +202,11 @@
             const moduleScript = document.createElement('script');
             moduleScript.type = 'module';
             moduleScript.src = moduleUrl;
-            
+
             moduleScript.onload = () => {
                 URL.revokeObjectURL(moduleUrl);
             };
-            
+
             moduleScript.onerror = (err) => {
                 console.error('Module failed', err);
                 loaderOverlay.classList.add('hidden');
