@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "enabled": true,
+  "fallbackToGradients": true,
+  "images": {
+    "sigma": "https://hqmobile.netlify.app/www/sigma.jpg",
+    
+    "mindset": "https://hqmobile.netlify.app/www/mindset.jpg",
+    
+    "lonely": "https://hqmobile.netlify.app/www/lonely.jpg",
+    
+    "Motivation": "https://hqmobile.netlify.app/www/motivation.jpg",
+  
+    "Love": "https://hqmobile.netlify.app/www/love.jpg",
+    
+    "Line": "https://hqmobile.netlify.app/www/line.jpg",
+    
+    "sad": "https://hqmobile.netlify.app/www/sad.jpg",
+    
+    "Attitude": "https://hqmobile.netlify.app/www/attitude.jpg",
+    
+    "Success": "https://hqmobile.netlify.app/www/success.jpg",
+    
+    "Inspirational": "https://hqmobile.netlify.app/www/inspiration.jpg",
+    
+    "Friendship": "https://hqmobile.netlify.app/www/friendship.jpg",
+    
+    "Thanks": "https://hqmobile.netlify.app/www/thanks.jpg",
+    
+  },
+  "settings": {
+    "loadOnlyOnWifi": false,
+    "retryCount": 3,
+    "cacheDuration": 86400
+  }
+}
