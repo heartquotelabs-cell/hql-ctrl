@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "enabled": true,
   "fallbackToGradients": true,
   "images": {
@@ -25,7 +25,13 @@
     
     "Friendship": "https://hqmobile.netlify.app/www/friendship.jpg",
     
-    "Thanks": "https://hqmobile.netlify.app/www/thanks.jpg"
+    "Thanks": "https://hqmobile.netlify.app/www/thanks.jpg",
+    
+    "Urdu": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/book-light-lighting-hg1h6o9",
+    
+    "Urdu": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/book-light-lighting-hg1h6o9",
+    
+    "arabic": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/nature-water-landscape-o5drlx5"
     
   },
   "settings": {
