@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "enabled": true,
   "fallbackToGradients": true,
   "images": {
@@ -15,7 +15,7 @@
     
     "line": "https://hqmobile.netlify.app/www/line.jpg",
     
-    "sad": "https://hqmobile.netlify.app/www/sad.jpg",
+    "sad": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/cartoon-mammal-grey-wh03ehv",
     
     "Attitude": "https://hqmobile.netlify.app/www/attitude.jpg",
     
@@ -29,10 +29,23 @@
     
     "Urdu": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/book-light-lighting-hg1h6o9",
     
-    "Urdu": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/book-light-lighting-hg1h6o9",
+    "Pashto": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/full-moon-wolf",
     
-    "arabic": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/nature-water-landscape-o5drlx5"
+    "hindi": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/360/644/circle-magenta-sleeve-kwguv1f",
     
+    "farsi": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/from-dawn-till-dusk-3d",
+    
+    "punjabi": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/footwear-shoe-leg-3keqnov",
+    
+    "arabic": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/nature-water-landscape-o5drlx5",
+    
+    "gaming": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/pink-purple-violet-28w4ym2",
+    
+    "cricket": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/360/644/art-wood-circle-bm81rhs",
+  
+    "coding": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/360/644/vibrant-code-matrix-wallpaper",
+  
+    "football": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/360/644/sports-equipment-soccer-football-vy2gztt"
   },
   "settings": {
     "loadOnlyOnWifi": false,
