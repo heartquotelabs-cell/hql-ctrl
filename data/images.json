@@ -1,51 +1,96 @@
 {
-  "version": "2.1.0",
+  "version": "2.3.0",
   "enabled": true,
   "fallbackToGradients": true,
   "images": {
     "sigma": "https://hqmobile.netlify.app/www/sigma.jpg",
-    
     "mindset": "https://hqmobile.netlify.app/www/mindset.jpg",
-    
     "lonely": "https://hqmobile.netlify.app/www/lonely.jpg",
-    
     "Motivation": "https://hqmobile.netlify.app/www/motivation.jpg",
-  
     "Love": "https://hqmobile.netlify.app/www/love.jpg",
-    
     "line": "https://hqmobile.netlify.app/www/line.jpg",
-    
-    "sad": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/cartoon-mammal-grey-wh03ehv",
-    
+    "sad": "https://hqmobile.netlify.app/www/sad.jpg",
     "Attitude": "https://hqmobile.netlify.app/www/attitude.jpg",
-    
     "Success": "https://hqmobile.netlify.app/www/success.jpg",
-    
     "Inspirational": "https://hqmobile.netlify.app/www/inspiration.jpg",
-    
     "Friendship": "https://hqmobile.netlify.app/www/friendship.jpg",
-    
     "Thanks": "https://hqmobile.netlify.app/www/thanks.jpg",
-    
-    "Urdu": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/book-light-lighting-hg1h6o9",
-    
-    "Pashto": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/full-moon-wolf",
-    
-    "hindi": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/360/644/circle-magenta-sleeve-kwguv1f",
-    
-    "farsi": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/from-dawn-till-dusk-3d",
-    
-    "punjabi": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/footwear-shoe-leg-3keqnov",
-    
-    "arabic": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/nature-water-landscape-o5drlx5",
-    
-    "gaming": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/424/784/pink-purple-violet-28w4ym2",
-    
-    "cricket": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/360/644/art-wood-circle-bm81rhs",
-  
-    "coding": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/360/644/vibrant-code-matrix-wallpaper",
-  
-    "football": "https://1195237073.rsc.cdn77.org/api/gg-resource-image/360/644/sports-equipment-soccer-football-vy2gztt"
+    "Urdu": "https://hqmobile.netlify.app/www/urdu.jpg",
+    "Pashto": "https://hqmobile.netlify.app/www/pashto.jpg",
+    "hindi": "https://hqmobile.netlify.app/www/hindi.jpg",
+    "farsi": "https://hqmobile.netlify.app/www/farsi.jpg",
+    "punjabi": "https://hqmobile.netlify.app/www/punjabi.jpg",
+    "arabic": "https://hqmobile.netlify.app/www/arabic.jpg",
+    "gaming": "https://hqmobile.netlify.app/www/gaming.jpg",
+    "cricket": "https://hqmobile.netlify.app/www/cricket.jpg",
+    "coding": "https://hqmobile.netlify.app/www/coding.jpg",
+    "football": "https://hqmobile.netlify.app/www/football.jpg",
+    "mix": "https://hqmobile.netlify.app/www/mix.jpg",
+    "Anniversary": "https://hqmobile.netlify.app/www/anniversary.jpg",
+    "aprilfool": "https://hqmobile.netlify.app/www/aprilfool.jpg",
+    "birthday": "https://hqmobile.netlify.app/www/birthday.jpg",
+    "Best-Wishes": "https://hqmobile.netlify.app/www/bestwishes.jpg",
+    "breakup": "https://hqmobile.netlify.app/www/breakup.jpg",
+    "Childhood": "https://hqmobile.netlify.app/www/childhood.jpg",
+    "decent": "https://hqmobile.netlify.app/www/decent.jpg",
+    "Exam": "https://hqmobile.netlify.app/www/exam.jpg",
+    "emotional": "https://hqmobile.netlify.app/www/emotional.jpg",
+    "fatherday": "https://hqmobile.netlify.app/www/fatherday.jpg",
+    "funny": "https://hqmobile.netlify.app/www/funny.jpg",
+    "Good-night": "https://hqmobile.netlify.app/www/night.jpg",
+    "goodluck": "https://hqmobile.netlify.app/www/goodluck.jpg",
+    "Happiness": "https://hqmobile.netlify.app/www/happiness.jpg",
+    "hateyou": "https://hqmobile.netlify.app/www/hateyou.jpg",
+    "home": "https://hqmobile.netlify.app/www/home.jpg",
+    "Insult": "https://hqmobile.netlify.app/www/insult.jpg",
+    "Jealousy": "https://hqmobile.netlify.app/www/jealous.jpg",
+    "Kiss": "https://hqmobile.netlify.app/www/kiss.jpg",
+    "life": "https://hqmobile.netlify.app/www/life.jpg",
+    "lessons": "https://hqmobile.netlify.app/www/lessons.jpg",
+    "Good-morning": "https://hqmobile.netlify.app/www/morning.jpg",
+    "mother": "https://hqmobile.netlify.app/www/mother.jpg",
+    "moving": "https://hqmobile.netlify.app/www/moving.jpg",
+    "missyou": "https://hqmobile.netlify.app/www/missyou.jpg",
+    "naughty": "https://hqmobile.netlify.app/www/naughty.jpg",
+    "parents": "https://hqmobile.netlify.app/www/parents.jpg",
+    "peace": "https://hqmobile.netlify.app/www/peace.jpg",
+    "party": "https://hqmobile.netlify.app/www/party.jpg",
+    "quotes": "https://hqmobile.netlify.app/www/quotes.jpg",
+    "Raining": "https://hqmobile.netlify.app/www/raining.jpg",
+    "revenge": "https://hqmobile.netlify.app/www/revenge.jpg",
+    "summer": "https://hqmobile.netlify.app/www/summer.jpg",
+    "selflove": "https://hqmobile.netlify.app/www/selflove.jpg",
+    "tough": "https://hqmobile.netlify.app/www/tough.jpg",
+    "unique": "https://hqmobile.netlify.app/www/unique.jpg",
+    "university": "https://hqmobile.netlify.app/www/university.jpg",
+    "weekend": "https://hqmobile.netlify.app/www/weekend.jpg",
+    "xpressions": "https://hqmobile.netlify.app/www/xpressions.jpg",
+    "yarns": "https://hqmobile.netlify.app/www/yarns.jpg",
+    "zenith": "https://hqmobile.netlify.app/www/zenith.jpg",
+    "moral": "https://hqmobile.netlify.app/www/moral.jpg",
+    "shock": "https://hqmobile.netlify.app/www/shock.jpg",
+    "facts": "https://hqmobile.netlify.app/www/facts.jpg",
+    "random": "https://hqmobile.netlify.app/www/random.jpg",
+    "trending": "https://hqmobile.netlify.app/www/trending.jpg",
+    "haqeqat": "https://hqmobile.netlify.app/www/haqeqat.jpg",
+    "pashtoOnline": "https://hqmobile.netlify.app/www/pashto.jpg",
+    "ishq": "https://hqmobile.netlify.app/www/ishq.jpg",
+    "ghamOnline": "https://hqmobile.netlify.app/www/gham.jpg",
+    "urdupopular": "https://hqmobile.netlify.app/www/urdupopular.jpg",
+    "urdusad": "https://hqmobile.netlify.app/www/urdusad.jpg",
+    "aankh": "https://hqmobile.netlify.app/www/aankh.jpg",
+    "asman": "https://hqmobile.netlify.app/www/asman.jpg",
+    "awaz": "https://hqmobile.netlify.app/www/awaz.jpg",
+    "aena": "https://hqmobile.netlify.app/www/aena.jpg",
+    "gham": "https://hqmobile.netlify.app/www/gham.jpg",
+    "udas": "https://hqmobile.netlify.app/www/udas.jpg",
+    "emotions": "https://hqmobile.netlify.app/www/emotions.jpg",
+    "urduhappy": "https://hqmobile.netlify.app/www/urduhappy.jpg",
+    "behen": "https://hqmobile.netlify.app/www/behen.jpg",
+    "urduevening": "https://hqmobile.netlify.app/www/urduevening.jpg",
+    "phool": "https://hqmobile.netlify.app/www/phool.jpg",
+    "urdulove": "https://hqmobile.netlify.app/www/urdulove.jpg",
+    "wada": "https://hqmobile.netlify.app/www/wada.jpg"
   },
   "settings": {
     "loadOnlyOnWifi": false,
