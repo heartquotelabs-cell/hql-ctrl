@@ -1,5 +1,5 @@
 {
-  "version": "2.3.0",
+  "version": "2.4.0",
   "enabled": true,
   "fallbackToGradients": true,
   "images": {
@@ -71,11 +71,6 @@
     "shock": "https://hqmobile.netlify.app/www/shock.jpg",
     "facts": "https://hqmobile.netlify.app/www/facts.jpg",
     "random": "https://hqmobile.netlify.app/www/random.jpg",
-    "trending": "https://hqmobile.netlify.app/www/trending.jpg",
-    "haqeqat": "https://hqmobile.netlify.app/www/haqeqat.jpg",
-    "pashtoOnline": "https://hqmobile.netlify.app/www/pashto.jpg",
-    "ishq": "https://hqmobile.netlify.app/www/ishq.jpg",
-    "ghamOnline": "https://hqmobile.netlify.app/www/gham.jpg",
     "urdupopular": "https://hqmobile.netlify.app/www/urdupopular.jpg",
     "urdusad": "https://hqmobile.netlify.app/www/urdusad.jpg",
     "aankh": "https://hqmobile.netlify.app/www/aankh.jpg",
