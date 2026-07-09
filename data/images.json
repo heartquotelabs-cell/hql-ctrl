@@ -1,8 +1,15 @@
 {
-  "version": "2.4.0",
+  "version": "2.5.0",
   "enabled": true,
   "fallbackToGradients": true,
   "images": {
+    "aesthetic": "https://hqmobile.netlify.app/www/aesthetic.jpg",
+    "career": "https://hqmobile.netlify.app/www/career.jpg",
+    "genz": "https://hqmobile.netlify.app/www/genz.jpg",
+    "hockey": "https://hqmobile.netlify.app/www/hockey.jpg",
+    "gym": "https://hqmobile.netlify.app/www/gym.jpg",
+    "thatgirl": "https://hqmobile.netlify.app/www/thatgirl.jpg",
+    
     "sigma": "https://hqmobile.netlify.app/www/sigma.jpg",
     "mindset": "https://hqmobile.netlify.app/www/mindset.jpg",
     "lonely": "https://hqmobile.netlify.app/www/lonely.jpg",
