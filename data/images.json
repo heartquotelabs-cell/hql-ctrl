@@ -1,5 +1,5 @@
 {
-  "version": "2.5.0",
+  "version": "2.6.0",
   "enabled": true,
   "fallbackToGradients": true,
   "images": {
@@ -9,6 +9,8 @@
     "hockey": "https://hqmobile.netlify.app/www/hockey.jpg",
     "gym": "https://hqmobile.netlify.app/www/gym.jpg",
     "thatgirl": "https://hqmobile.netlify.app/www/thatgirl.jpg",
+    "life": "https://hqmobile.netlify.app/www/lifestyle.jpg",
+    "philosophy": "https://hqmobile.netlify.app/www/philosophy.jpg",
     
     "sigma": "https://hqmobile.netlify.app/www/sigma.jpg",
     "mindset": "https://hqmobile.netlify.app/www/mindset.jpg",
@@ -56,7 +58,7 @@
     "lessons": "https://hqmobile.netlify.app/www/lessons.jpg",
     "Good-morning": "https://hqmobile.netlify.app/www/morning.jpg",
     "mother": "https://hqmobile.netlify.app/www/mother.jpg",
-    "moving": "https://hqmobile.netlify.app/www/moving.jpg",
+    "moving": "https://hqmobile.netlify.app/www/movingon.jpg",
     "missyou": "https://hqmobile.netlify.app/www/missyou.jpg",
     "naughty": "https://hqmobile.netlify.app/www/naughty.jpg",
     "parents": "https://hqmobile.netlify.app/www/parents.jpg",
@@ -75,7 +77,7 @@
     "yarns": "https://hqmobile.netlify.app/www/yarns.jpg",
     "zenith": "https://hqmobile.netlify.app/www/zenith.jpg",
     "moral": "https://hqmobile.netlify.app/www/moral.jpg",
-    "shock": "https://hqmobile.netlify.app/www/shock.jpg",
+    "shock": "https://hqmobile.netlify.app/www/shocking.jpg",
     "facts": "https://hqmobile.netlify.app/www/facts.jpg",
     "random": "https://hqmobile.netlify.app/www/random.jpg",
     "urdupopular": "https://hqmobile.netlify.app/www/urdupopular.jpg",
