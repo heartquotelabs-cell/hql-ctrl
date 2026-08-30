@@ -1,5 +1,5 @@
 {
-  "version": "2.6.0",
+  "version": "2.7.0",
   "enabled": true,
   "fallbackToGradients": true,
   "images": {
@@ -25,11 +25,7 @@
     "Friendship": "https://hqmobile.netlify.app/www/friendship.jpg",
     "Thanks": "https://hqmobile.netlify.app/www/thanks.jpg",
     "Urdu": "https://hqmobile.netlify.app/www/urdu.jpg",
-    "Pashto": "https://hqmobile.netlify.app/www/pashto.jpg",
-    "hindi": "https://hqmobile.netlify.app/www/hindi.jpg",
-    "farsi": "https://hqmobile.netlify.app/www/farsi.jpg",
-    "punjabi": "https://hqmobile.netlify.app/www/punjabi.jpg",
-    "arabic": "https://hqmobile.netlify.app/www/arabic.jpg",
+
     "gaming": "https://hqmobile.netlify.app/www/gaming.jpg",
     "cricket": "https://hqmobile.netlify.app/www/cricket.jpg",
     "coding": "https://hqmobile.netlify.app/www/coding.jpg",
@@ -91,7 +87,7 @@
     "emotions": "https://hqmobile.netlify.app/www/emotions.jpg",
     "urduhappy": "https://hqmobile.netlify.app/www/urduhappy.jpg",
     "behen": "https://hqmobile.netlify.app/www/behen.jpg",
-    "urduevening": "https://hqmobile.netlify.app/www/urduevening.jpg",
+    "popular": "https://hqmobile.netlify.app/www/urduevening.jpg",
     "phool": "https://hqmobile.netlify.app/www/phool.jpg",
     "urdulove": "https://hqmobile.netlify.app/www/urdulove.jpg",
     "wada": "https://hqmobile.netlify.app/www/wada.jpg"
