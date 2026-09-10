@@ -1,0 +1,29 @@
+{
+  "images": [
+    {
+      "id": "love-001",
+      "url": "https://hqmobile.netlify.app/www/love.jpg",
+      "caption": "Optional short caption",
+      "addedAt": "2026-09-10"
+    },
+    {
+      "id": "love-002",
+      "url": "https://hqmobile.netlify.app/www/motivation.jpg",
+      "caption": "",
+      "addedAt": "2026-09-10"
+    },
+    {
+      "id": "love-003",
+      "url": "https://hqmobile.netlify.app/www/mindset.jpg",
+      "caption": "",
+      "addedAt": "2026-09-10"
+    },
+    {
+      "id": "love-004",
+      "url": "https://hqmobile.netlify.app/www/sigma.jpg",
+      "caption": "",
+      "addedAt": "2026-09-10"
+    }
+    
+  ]
+}
