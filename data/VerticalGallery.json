@@ -1,0 +1,58 @@
+{
+  "images": [
+    {
+      "id": "vert-001",
+      "url": "https://hqmobile.netlify.app/www/love.jpg",
+      "caption": "Vertical Template",
+      "addedAt": "2026-11-02"
+    },
+    {
+      "id": "vert-002",
+      "url": "https://hqmobile.netlify.app/www/motivation.jpg",
+      "caption": "Vertical Template",
+      "addedAt": "2026-11-02"
+    },
+    {
+      "id": "vert-003",
+      "url": "https://hqmobile.netlify.app/www/attitude.jpg",
+      "caption": "Vertical Template",
+      "addedAt": "2026-11-02"
+    },
+    {
+      "id": "vert-004",
+      "url": "https://hqmobile.netlify.app/www/heartbreak.jpg",
+      "caption": "Vertical Template",
+      "addedAt": "2026-11-02"
+    },
+    {
+      "id": "vert-005",
+      "url": "https://hqmobile.netlify.app/www/success.jpg",
+      "caption": "Vertical Template",
+      "addedAt": "2026-11-02"
+    },
+    {
+      "id": "vert-006",
+      "url": "https://hqmobile.netlify.app/www/friendship.jpg",
+      "caption": "Vertical Template",
+      "addedAt": "2026-11-02"
+    },
+    {
+      "id": "vert-007",
+      "url": "https://hqmobile.netlify.app/www/healing.jpg",
+      "caption": "Vertical Template",
+      "addedAt": "2026-11-02"
+    },
+    {
+      "id": "vert-008",
+      "url": "https://hqmobile.netlify.app/www/pain.jpg",
+      "caption": "Vertical Template",
+      "addedAt": "2026-11-02"
+    },
+    {
+      "id": "vert-009",
+      "url": "https://hqmobile.netlify.app/www/line.jpg",
+      "caption": "Vertical Template",
+      "addedAt": "2026-11-02"
+    }
+  ]
+}
