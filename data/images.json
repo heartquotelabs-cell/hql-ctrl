@@ -1,10 +1,12 @@
 {
-  "version": "2.8.1",
+  "version": "3.2.0",
   "enabled": true,
   "fallbackToGradients": true,
   "images": {
     "_comment_priority": "Top Rated + Hobbies first — above the fold on first render",
     "Love": "https://hqmobile.netlify.app/www/love.jpg",
+"relatable": "https://hqmobile.netlify.app/www/relatable.jpg",
+"bestie": "https://hqmobile.netlify.app/www/bestie.jpg",
     "Motivation": "https://hqmobile.netlify.app/www/motivation.jpg",
     "Attitude": "https://hqmobile.netlify.app/www/attitude.jpg",
     "heartbreak": "https://hqmobile.netlify.app/www/heartbreak.jpg",
